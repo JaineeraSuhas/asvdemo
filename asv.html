@@ -1492,6 +1492,383 @@
             width: 0%;
             transition: width 1.2s ease;
         }
+
+        /* ═══════════════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS — COMPREHENSIVE MOBILE
+═══════════════════════════════════════════════════ */
+
+        /* ─── TABLET (max-width: 768px) ─── */
+        @media(max-width:768px) {
+
+            /* Hero section adjustments */
+            .hero-content {
+                padding: 40px 0 50px;
+            }
+
+            .hero-title {
+                letter-spacing: -1px;
+            }
+
+            .hero-subtitle {
+                font-size: clamp(14px, 2.5vw, 18px);
+                margin: 16px 0 28px;
+            }
+
+            .hero-actions {
+                margin-bottom: 40px;
+            }
+
+            .stat-num {
+                font-size: 24px;
+            }
+
+            .stat-label {
+                font-size: 9px;
+            }
+
+            /* Section headings */
+            .section-sub {
+                font-size: 14px;
+            }
+
+            /* Specs: 2×2 grid on tablet */
+            .specs-layout {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 14px;
+            }
+
+            /* Cost summary: 2×2 grid on tablet */
+            .cost-summary-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+
+            /* 3-view device model: stack to full width */
+            .device-views-grid {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+            }
+
+            /* Apps grid: single column */
+            .apps-grid {
+                grid-template-columns: 1fr;
+            }
+
+            /* Placement card padding */
+            .placement-card {
+                padding: 18px;
+            }
+
+            .spec-card {
+                padding: 18px;
+            }
+
+            /* Feature cards */
+            .feature-card {
+                padding: 18px;
+            }
+
+            /* Table font reduction */
+            .cost-table td,
+            .cost-table th {
+                padding: 10px 10px;
+                font-size: 12px;
+            }
+
+            .compare-table td,
+            .compare-table th {
+                padding: 9px 10px;
+                font-size: 11px;
+            }
+
+            /* Footer */
+            .footer-logo {
+                font-size: 20px;
+            }
+
+            .footer-desc {
+                font-size: 12px;
+            }
+        }
+
+        /* ─── SMALL TABLET / LARGE PHONE (max-width: 640px) ─── */
+        @media(max-width:640px) {
+
+            /* Specs: single column */
+            .specs-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ─── PHONE (max-width: 560px) ─── */
+        @media(max-width:560px) {
+
+            /* Container padding */
+            .container {
+                padding: 0 16px;
+            }
+
+            /* Section padding */
+            .section {
+                padding: 48px 0;
+            }
+
+            .section-sm {
+                padding: 36px 0;
+            }
+
+            /* Hero further adjustments */
+            .hero-content {
+                padding: 28px 0 40px;
+            }
+
+            .hero-eyebrow {
+                font-size: 10px;
+                letter-spacing: 2px;
+                gap: 8px;
+            }
+
+            .hero-eyebrow::before {
+                width: 20px;
+            }
+
+            .hero-subtitle {
+                margin: 12px 0 24px;
+            }
+
+            .hero-actions {
+                margin-bottom: 32px;
+                flex-direction: column;
+            }
+
+            .btn-primary,
+            .btn-ghost {
+                width: 100%;
+                text-align: center;
+                padding: 16px 20px;
+                font-size: 12px;
+            }
+
+            /* Stat num */
+            .stat-num {
+                font-size: 20px;
+            }
+
+            .stat-box {
+                padding: 14px 10px;
+            }
+
+            /* Section title */
+            .section-title {
+                font-size: clamp(24px, 6vw, 36px);
+            }
+
+            /* Tag */
+            .tag {
+                font-size: 10px;
+                padding: 4px 10px;
+                letter-spacing: 1.5px;
+            }
+
+            /* Cost summary: single column */
+            .cost-summary-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 8px !important;
+            }
+
+            /* Pipeline step */
+            .step-name {
+                font-size: 15px;
+            }
+
+            .step-desc {
+                font-size: 13px;
+            }
+
+            /* ML card */
+            .ml-accuracy {
+                font-size: 24px;
+            }
+
+            /* Placement spec */
+            .placement-spec {
+                font-size: 10px;
+                padding: 6px 10px;
+            }
+
+            /* Phase items */
+            .phase-name {
+                font-size: 16px;
+            }
+
+            .phase-tag {
+                font-size: 11px;
+                padding: 3px 8px;
+            }
+
+            /* Timeline items */
+            .tl-title {
+                font-size: 14px;
+            }
+
+            .tl-desc {
+                font-size: 12px;
+            }
+
+            /* Nav padding */
+            nav {
+                padding: 0 14px;
+            }
+
+            .nav-inner {
+                height: 56px;
+            }
+
+            .mobile-menu {
+                top: 56px;
+                padding: 20px 16px;
+            }
+
+            /* Device SVG card */
+            .device-svg-card {
+                padding: 12px;
+            }
+
+            /* App card */
+            .app-card {
+                padding: 18px;
+            }
+
+            .app-name {
+                font-size: 15px;
+            }
+
+            .app-feat {
+                font-size: 12.5px;
+            }
+
+            /* Footer */
+            footer {
+                padding: 28px 16px;
+            }
+        }
+
+        /* ─── VERY SMALL PHONE (max-width: 400px) ─── */
+        @media(max-width:400px) {
+
+            .container {
+                padding: 0 12px;
+            }
+
+            .hero-title {
+                letter-spacing: 0;
+            }
+
+            /* Cost summary: stack */
+            .cost-summary-grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            .stat-num {
+                font-size: 18px;
+            }
+
+            .stat-label {
+                font-size: 8px;
+            }
+
+            .stat-box {
+                padding: 12px 8px;
+            }
+
+            .nav-logo {
+                font-size: 17px;
+            }
+
+            .nav-logo span {
+                font-size: 11px;
+            }
+
+            .placement-card {
+                padding: 14px;
+            }
+
+            .spec-card {
+                padding: 14px;
+            }
+
+            .spec-row {
+                font-size: 12px;
+                flex-direction: column;
+                gap: 4px;
+                align-items: flex-start;
+            }
+
+            .feature-card {
+                padding: 16px;
+            }
+
+            .feature-title {
+                font-size: 14px;
+            }
+
+            .feature-desc {
+                font-size: 12.5px;
+            }
+
+            /* ML cards */
+            .ml-card {
+                padding: 16px;
+            }
+
+            .ml-name {
+                font-size: 12px;
+            }
+
+            .ml-accuracy {
+                font-size: 22px;
+            }
+
+            /* Footer meta */
+            .footer-meta {
+                font-size: 9px;
+            }
+        }
+
+        /* ─── TINY PHONE (max-width: 360px) ─── */
+        @media(max-width:360px) {
+
+            .hero-stats {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .pipeline-step {
+                gap: 10px;
+            }
+
+            .step-num {
+                width: 36px;
+                height: 36px;
+                min-width: 36px;
+                font-size: 10px;
+            }
+
+            .pipeline-steps::before {
+                left: 17px;
+            }
+
+            .phase-item {
+                grid-template-columns: 60px 1fr;
+                gap: 10px;
+            }
+
+            .phase-num {
+                font-size: 22px;
+            }
+
+            .phase-timeline {
+                font-size: 9px;
+            }
+        }
     </style>
 </head>
 
@@ -2951,7 +3328,8 @@
             </div>
 
             <!-- 3 view cards below -->
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px;" class="reveal">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px;"
+                class="reveal device-views-grid">
                 <!-- Front view -->
                 <div class="device-svg-card" style="padding:14px;text-align:center;">
                     <svg width="100%" viewBox="0 0 180 170" xmlns="http://www.w3.org/2000/svg">
@@ -3553,7 +3931,8 @@
                         </tbody>
                     </table>
                 </div>
-                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px;">
+                <div class="cost-summary-grid"
+                    style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px;">
                     <div
                         style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:16px;text-align:center">
                         <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--accent)">
