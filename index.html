@@ -31,16 +31,26 @@
         }
 
         body {
-            background: #050B14;
-            color: #C8D8E8;
-            font-family: 'Outfit', sans-serif;
+            background: #FFFFFF;
+            background-image: repeating-linear-gradient(0deg, #FAFAFA, #FAFAFA 1px, transparent 1px, transparent 2px);
+            background-size: 100% 2px;
+            color: #000000;
+            font-family: 'Source Serif 4', serif;
             line-height: 1.6;
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1, h2, h3, h4, .hero-title {
+            font-family: 'Playfair Display', serif;
+            color: #000000;
+            font-weight: 700;
         }
 
         img {
             max-width: 100%;
             display: block;
+            filter: grayscale(100%);
         }
 
         a {
@@ -52,21 +62,21 @@
    DESIGN TOKENS
 ═══════════════════════════════════════════════════ */
         :root {
-            --bg: #050B14;
-            --bg2: #0A1525;
-            --bg3: #0F1E30;
-            --border: rgba(0, 210, 150, 0.15);
-            --accent: #00D296;
-            --accent-glow: rgba(0, 210, 150, 0.25);
-            --purple: #8B5CF6;
-            --orange: #F97316;
-            --yellow: #FBBF24;
-            --red: #EF4444;
-            --text: #C8D8E8;
-            --dim: #4A6878;
-            --white: #F0F8FF;
-            --r: 8px;
-            --shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            --bg: #FFFFFF;
+            --bg2: #F5F5F5;
+            --bg3: #EBEBEB;
+            --border: rgba(0, 0, 0, 0.15);
+            --accent: #000000;
+            --accent-glow: transparent;
+            --purple: #525252;
+            --orange: #525252;
+            --yellow: #525252;
+            --red: #000000;
+            --text: #000000;
+            --dim: #525252;
+            --white: #000000;
+            --r: 0px;
+            --shadow: none;
         }
 
         /* ═══════════════════════════════════════════════════
@@ -2971,7 +2981,7 @@
                         animation: waveform-draw 2s 1.2s ease forwards;
                     }
                 </style>
-                <svg width="100%" viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg"
+                <svg width="100%" viewBox="0 0 700 430" xmlns="http://www.w3.org/2000/svg"
                     style="max-width:900px;margin:0 auto;display:block;border:1px solid #000;background:#FAFAFA;">
                     <defs>
                         <!-- Signal glow filters -->
@@ -3210,8 +3220,9 @@
                     <text x="355" y="247" fill="#F97316" font-family="'JetBrains Mono',monospace" font-size="8" text-anchor="middle">THROAT-GND</text>
 
                     <!-- Wires connecting electrodes to strap/neck -->
-                    <path d="M 290 173 Q 310 190 355 190" stroke="#00D296" stroke-width="1.8" fill="none" class="sf2"/>
-                    <path d="M 420 173 Q 400 190 355 190" stroke="#00D296" stroke-width="1.8" fill="none" class="sf1"/>
+                    <path d="M 295 170 Q 310 210 335 248" stroke="#00D296" stroke-width="1.8" fill="none" class="sf2"/>
+                    <path d="M 415 170 Q 400 210 375 248" stroke="#00D296" stroke-width="1.8" fill="none" class="sf1"/>
+                    <path d="M 355 204 L 355 248" stroke="#8B5CF6" stroke-width="2" fill="none" class="sf3"/>
                     <!-- Strap across neck -->
                     <path d="M 300 248 Q 355 256 410 248" stroke="#222" stroke-width="7" fill="none" stroke-linecap="round"/>
                     <path d="M 300 248 Q 355 256 410 248" stroke="#555" stroke-width="2" fill="none" stroke-dasharray="5,7" stroke-linecap="round"/>
@@ -4312,6 +4323,12 @@
                     <text x="280" y="348" fill="#F97316" font-family="'JetBrains Mono',monospace" font-size="8" text-anchor="middle" font-weight="700">EMG-REF</text>
                     <text x="280" y="358" fill="#AA4A1A" font-family="'JetBrains Mono',monospace" font-size="7" text-anchor="middle">THROAT/GND</text>
 
+                    <!-- ══ SUPRAHYOID (NEW) ══ -->
+                    <path d="M 280 280 L 280 320" stroke="#8B5CF6" stroke-width="2.5" fill="none" stroke-dasharray="5,3" class="signal-line-b" />
+                    <circle cx="280" cy="320" r="14" fill="#FFF" stroke="#8B5CF6" stroke-width="2.5" />
+                    <circle cx="280" cy="320" r="4" fill="#8B5CF6" filter="url(#gBLEb)" />
+                    <text x="280" y="310" fill="#8B5CF6" font-family="'JetBrains Mono',monospace" font-size="8" text-anchor="middle" font-weight="700">SUPRAHYOID</text>
+
                     <!-- ══ BLE OUTPUT ARROW ══ -->
                     <path d="M 375 200 Q 430 180 490 170" stroke="#8B5CF6" stroke-width="2" fill="none" stroke-dasharray="6,4" class="signal-line-b" />
                     <polygon points="490,166 498,170 490,174" fill="#8B5CF6" />
@@ -4369,7 +4386,7 @@
             </div>
 
             <!-- 3 view cards below -->
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px;"
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;"
                 class="reveal device-views-grid">
                 <!-- Front view -->
                 <div class="device-svg-card" style="padding:14px;text-align:center;">
@@ -4400,7 +4417,7 @@
                         <!-- wires -->
                         <path d="M 57 112 Q 72 122 80 128" stroke="#00D296" stroke-width="1.5" fill="none" stroke-dasharray="3,2" opacity="0.8" />
                         <path d="M 123 112 Q 108 122 100 128" stroke="#00D296" stroke-width="1.5" fill="none" stroke-dasharray="3,2" opacity="0.8" />
-                        <path d="M 90 131 L 90 142" stroke="#8B5CF6" stroke-width="1.5" fill="none" stroke-dasharray="3,2" opacity="0.8" />
+                        <path d="M 90 142 L 38 112" stroke="#8B5CF6" stroke-width="1.5" fill="none" stroke-dasharray="3,2" opacity="0.8" />
                         
                         <!-- strap -->
                         <path d="M 38 112 Q 20 134 30 154" stroke="#444" stroke-width="6" fill="none" stroke-linecap="round" />
