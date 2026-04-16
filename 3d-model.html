@@ -561,12 +561,12 @@ function buildHead(){
     
     // Core structure shaping via Gaussian pulls
     const bx=Math.abs(x);
-    // 1. Nose Bridge and Tip
+    // 1. Nose Bridge and Tip (Jutting firmly outwards and slightly down)
     const nK = Math.exp(-(bx*bx/0.012 + (y-0.1)**2/0.06 + (z-1.0)**2/0.08));
-    if(z>0.5){ z += nK * 0.45; y -= nK * 0.15; }
-    // 2. Deep Eye Sockets
+    if(z>0.5){ z += nK * 0.70; y -= nK * 0.20; }
+    // 2. Deep Hollow Eye Sockets (Pushed radically backward)
     const esK = Math.exp(-((bx-0.35)**2/0.03 + (y-0.38)**2/0.02 + (z-0.8)**2/0.08));
-    if(z>0.5){ z -= esK * 0.28; x -= Math.sign(x)*esK*0.06; }
+    if(z>0.5){ z -= esK * 0.45; x -= Math.sign(x)*esK*0.06; }
     // 3. Pronounced Cheekbones / Zygomatic Arches
     const ckK = Math.exp(-((bx-0.58)**2/0.02 + (y-0.05)**2/0.02 + (z-0.7)**2/0.08));
     if(z>0.2){ z += ckK * 0.25; x += Math.sign(x)*ckK*0.15; y += ckK * 0.05; }
@@ -615,12 +615,12 @@ shoulderMesh.castShadow = true; shoulderMesh.receiveShadow = true;
 
 /* ══ ELECTRODE DATA ══ */
 const electrodeData = [
-  { pos: new THREE.Vector3( 1.18,-0.35, 0.62), label:'MASSETER-L',   id:'ML',  muscle:'Masseter',   location:'Left cheek lateral',    impedance:'5.2 kΩ', channel:'CH1' },
-  { pos: new THREE.Vector3(-1.18,-0.35, 0.62), label:'MASSETER-R',   id:'MR',  muscle:'Masseter',   location:'Right cheek lateral',   impedance:'4.8 kΩ', channel:'CH2' },
-  { pos: new THREE.Vector3( 0.28,-1.60, 0.72), label:'SUPRAHYOID-L', id:'SHL', muscle:'Suprahyoid', location:'Sub-mandibular left',   impedance:'6.1 kΩ', channel:'CH3' },
-  { pos: new THREE.Vector3(-0.28,-1.60, 0.72), label:'SUPRAHYOID-R', id:'SHR', muscle:'Suprahyoid', location:'Sub-mandibular right',  impedance:'5.9 kΩ', channel:'CH4' },
-  { pos: new THREE.Vector3( 0.98,-0.05, 0.96), label:'BUCCINATOR-L', id:'BL',  muscle:'Buccinator', location:'Left cheek anterior',   impedance:'4.5 kΩ', channel:'CH5' },
-  { pos: new THREE.Vector3(-0.98,-0.05, 0.96), label:'BUCCINATOR-R', id:'BR',  muscle:'Buccinator', location:'Right cheek anterior',  impedance:'4.7 kΩ', channel:'CH6' },
+  { pos: new THREE.Vector3( 0.75,-0.60, 0.45), label:'MASSETER-L',   id:'ML',  muscle:'Masseter',   location:'Left cheek lateral',    impedance:'5.2 kΩ', channel:'CH1' },
+  { pos: new THREE.Vector3(-0.75,-0.60, 0.45), label:'MASSETER-R',   id:'MR',  muscle:'Masseter',   location:'Right cheek lateral',   impedance:'4.8 kΩ', channel:'CH2' },
+  { pos: new THREE.Vector3( 0.20,-1.15, 0.35), label:'SUPRAHYOID-L', id:'SHL', muscle:'Suprahyoid', location:'Sub-mandibular left',   impedance:'6.1 kΩ', channel:'CH3' },
+  { pos: new THREE.Vector3(-0.20,-1.15, 0.35), label:'SUPRAHYOID-R', id:'SHR', muscle:'Suprahyoid', location:'Sub-mandibular right',  impedance:'5.9 kΩ', channel:'CH4' },
+  { pos: new THREE.Vector3( 0.60,-0.05, 0.75), label:'BUCCINATOR-L', id:'BL',  muscle:'Buccinator', location:'Left cheek anterior',   impedance:'4.5 kΩ', channel:'CH5' },
+  { pos: new THREE.Vector3(-0.60,-0.05, 0.75), label:'BUCCINATOR-R', id:'BR',  muscle:'Buccinator', location:'Right cheek anterior',  impedance:'4.7 kΩ', channel:'CH6' },
 ];
 
 /* ══ RAYCAST ELECTRODES ONTO SKIN ══ */
@@ -703,14 +703,15 @@ const cableGroup = new THREE.Group();
 const signalLines = []; // To hold data pulses
 
 electrodeData.forEach((d, i) => {
-  // slightly different exit directions
+  // Push control point outwards via normal so cable leaves mesh instead of clipping Jawline
   const sag = 0.20 + (i % 3) * 0.08;
   const biasX = (i - 2.5) * 0.06;
   const biasZ = 0.04 + (i % 2) * 0.03;
+  const norm = d.pos.clone().normalize();
   const curve = new THREE.CubicBezierCurve3(
     d.pos, 
-    new THREE.Vector3(d.pos.x+biasX, d.pos.y-sag*0.6, d.pos.z+biasZ), 
-    new THREE.Vector3(dspAnchor.x+biasX*0.4, dspAnchor.y-sag, dspAnchor.z), 
+    d.pos.clone().add(norm.multiplyScalar(0.4)).add(new THREE.Vector3(biasX, -sag*0.2, biasZ)), 
+    dspAnchor.clone().add(new THREE.Vector3(biasX*0.4, sag + 0.4, -0.2)), 
     dspAnchor
   );
   
