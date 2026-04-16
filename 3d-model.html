@@ -193,49 +193,9 @@ body::after {
   border:1px solid rgba(0,229,170,0.2);
   transition:opacity .3s;
 }
-
-/* CRT HUD OVERLAY */
-#crt-hud {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  pointer-events: none; z-index: 1000;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
-              linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-  background-size: 100% 3px, 3px 100%;
-  opacity: 0.4;
-}
-#crt-hud::after {
-  content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
-  background: rgba(18, 16, 16, 0.1); opacity: 0; z-index: 1001; pointer-events: none;
-  animation: flicker 0.12s infinite;
-}
-@keyframes flicker {
-  0% { opacity: 0.27861; } 10% { opacity: 0.13025; } 20% { opacity: 0.11103; } 30% { opacity: 0.23123; } 40% { opacity: 0.15421; }
-  50% { opacity: 0.11211; } 60% { opacity: 0.23121; } 70% { opacity: 0.12871; } 80% { opacity: 0.21111; } 90% { opacity: 0.12999; } 100% { opacity: 0.19821; }
-}
-.hud-log {
-  position: absolute; bottom: 40px; right: 40px; width: 220px;
-  font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #00ffaa;
-  text-transform: uppercase; line-height: 1.4; opacity: 0.8;
-}
-.hud-log-entry { margin-bottom: 4px; border-left: 1px solid #00ffaa22; padding-left: 6px; }
-
-/* AUDIO TOGGLE */
-.audio-toggle {
-  position: absolute; top: 0; right: 0;
-  padding: 4px 8px; font-size: 9px; border: 1px solid #00ffaa44;
-  cursor: pointer; transition: all 0.2s;
-}
-.audio-toggle.on { color: #00ffaa; border-color: #00ffaa; background: #00ffaa11; box-shadow: 0 0 10px #00ffaa33; }
 </style>
 </head>
 <body>
-
-<div id="crt-hud"></div>
-<div class="hud-log" id="hudLog">
-  <div class="hud-log-entry">Booting ASV-OS v1.0.4...</div>
-  <div class="hud-log-entry">Neural Link Initialized.</div>
-  <div class="hud-log-entry">System Status: NOMINAL</div>
-</div>
 
 <div id="loading">
   <div id="loadlogo">ASV</div>
@@ -341,13 +301,6 @@ body::after {
       </div>
       <div class="sb-body">
         <div class="dsp-card">
-          <div class="cp-top">
-            <div>
-              <div style="font-size:14px; font-weight:bold; letter-spacing:1px; color:#fff;">ASV — NEURAL INTERFACE</div>
-              <div style="font-size:9px; color:#888; font-family:'JetBrains Mono';">v1.0.4-PROTOTYPE / GAIA-CORE</div>
-            </div>
-            <div id="diagAudio" class="audio-toggle" onclick="toggleAudio(this)">SOUND: OFF</div>
-          </div>
           <div class="dsp-title">ASV-PCB-v1</div>
           <div class="dsp-sub">CUSTOM ESP32-WROOM-32 SIGNAL PROCESSOR</div>
           <div class="spec-row"><span class="spec-k">Amplifier</span><span class="spec-v">INA128 × 3 (1000× Gain)</span></div>
@@ -434,25 +387,6 @@ body::after {
 (function(){
 'use strict';
 
-/* ══ CORE MATERIALS ══ */
-const skinMat = new THREE.MeshPhysicalMaterial({ 
-  color: 0x07090d, roughness: 0.15, metalness: 0.05,
-  transparent: true, opacity: 0.82, clearcoat: 0.45, clearcoatRoughness: 0.25,
-  reflectivity: 1.0, transmission: 0.25
-});
-const packagePinMat = new THREE.MeshStandardMaterial({ color: 0xdfb021, roughness: 0.1, metalness: 0.95 });
-const shieldMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, roughness: 0.15, metalness: 0.95 });
-const chipMat = new THREE.MeshPhysicalMaterial({ color: 0x0d0d0d, roughness: 0.35, metalness: 0.12, clearcoat: 0.55, clearcoatRoughness: 0.18 });
-const agClMat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.05, metalness: 1.0, reflectivity: 1.0, clearcoat: 1.0, clearcoatRoughness: 0.02 });
-const lipoCaseMat = new THREE.MeshPhysicalMaterial({ color: 0xcccccc, roughness: 0.3, metalness: 0.6, clearcoat: 0.2, clearcoatRoughness: 0.4 });
-const enclosureMat = new THREE.MeshPhysicalMaterial({ color: 0x12151c, roughness: 0.72, metalness: 0.28, clearcoat: 0.18, clearcoatRoughness: 0.45 });
-const gelMat = new THREE.MeshPhysicalMaterial({ color: 0x3399bb, roughness: 0.12, metalness: 0.0, transparent: true, opacity: 0.52, transmission: 0.32, ior: 1.38, clearcoat: 0.85, clearcoatRoughness: 0.04 });
-const rubberMat = new THREE.MeshStandardMaterial({ color: 0x0d0d0d, roughness: 0.9, metalness: 0.0 });
-const conductorMat = new THREE.MeshPhysicalMaterial({ color: 0xdfb021, roughness: 0.15, metalness: 1.0 });
-const silkMat = new THREE.MeshBasicMaterial({ color: 0xeaeaea });
-const capBodyMat = new THREE.MeshStandardMaterial({ color: 0xa08850, roughness: 0.55, metalness: 0.1 });
-const wireMat = new THREE.LineBasicMaterial({ color: 0x3d2214, transparent: true, opacity: 0.15, linewidth: 1 });
-
 /* ══ LOADING ══ */
 const fill = document.getElementById('loadfill');
 const loadingEl = document.getElementById('loading');
@@ -489,66 +423,13 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
 viewport.insertBefore(renderer.domElement, viewport.firstChild);
 
-/* ══ CINEMATIC POST-PROCESSING SHADERS ══ */
-const CinematicShader = {
-  uniforms: {
-    "tDiffuse": { value: null },
-    "amount": { value: 0.0015 },
-    "time": { value: 0.0 },
-    "vignette": { value: 1.2 },
-    "grain": { value: 0.04 }
-  },
-  vertexShader: `
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: `
-    uniform sampler2D tDiffuse;
-    uniform float amount;
-    uniform float time;
-    uniform float vignette;
-    uniform float grain;
-    varying vec2 vUv;
-
-    float rand(vec2 co){
-      return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
-    }
-
-    void main() {
-      vec2 uv = vUv;
-      float d = distance(uv, vec2(0.5));
-      
-      // Chromatic Aberration
-      vec4 r = texture2D(tDiffuse, uv + vec2(amount * d, 0.0));
-      vec4 g = texture2D(tDiffuse, uv);
-      vec4 b = texture2D(tDiffuse, uv - vec2(amount * d, 0.0));
-      vec4 color = vec4(r.r, g.g, b.b, g.a);
-
-      // Vignette
-      color.rgb *= smoothstep(0.8, 0.8 - vignette * 0.4, d);
-
-      // Film Grain
-      float noise = (rand(uv + time) - 0.5) * grain;
-      color.rgb += noise;
-
-      gl_FragColor = color;
-    }
-  `
-};
-
-/* ══ POST-PROCESSING (BLOOM + CINEMATIC) ══ */
+/* ══ POST-PROCESSING (BLOOM) ══ */
 const composer = new THREE.EffectComposer(renderer);
 const renderScene = new THREE.RenderPass(scene, camera);
 composer.addPass(renderScene);
 
-const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(W, H), 0.7, 0.45, 0.75);
+const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(W, H), 0.7, 0.45, 0.75); // strength, radius, threshold
 composer.addPass(bloomPass);
-
-const cinematicPass = new THREE.ShaderPass(CinematicShader);
-composer.addPass(cinematicPass);
 
 /* ══ LIGHTING ══ */
 const hemi = new THREE.HemisphereLight(0x1a2a4a, 0x2a1a0a, 0.5);
@@ -597,9 +478,6 @@ const genSilkscreen = () => {
   return tex;
 };
 const pcbTex = genSilkscreen();
-const pcbMat = new THREE.MeshPhysicalMaterial({ map: pcbTex, roughnessMap: pcbTex, color: 0x0a1a0d, roughness: 0.65, metalness: 0.15, clearcoat: 0.1, clearcoatRoughness: 0.6 });
-const traceMat = new THREE.MeshPhysicalMaterial({ color: 0xdfb021, roughness: 0.18, metalness: 1.0, clearcoat: 0.4, clearcoatRoughness: 0.1 });
-const solderMaskMat = new THREE.MeshPhysicalMaterial({ color: 0x0e2e12, roughness: 0.6, metalness: 0.1, transparent: true, opacity: 0.6 });
 
 const genICLabel = (text) => {
   const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256;
@@ -630,6 +508,92 @@ const genEnvMap = () => {
   const tex = new THREE.CanvasTexture(canvas); tex.mapping = THREE.EquirectangularReflectionMapping; return tex;
 };
 scene.environment = genEnvMap(); // Apply Studio HDRI statically
+
+/* ══ MATERIALS ══ */
+
+// Skin
+const skinMat = new THREE.MeshPhysicalMaterial({
+  color: 0x8B5E4A, roughness: 0.50, metalness: 0.08,
+  clearcoat: 0.22, clearcoatRoughness: 0.45, reflectivity: 0.45,
+  transmission: 0.35, thickness: 1.5, ior: 1.38 // Biological Flesh Subsurface Scattering
+});
+
+const wireMat = new THREE.LineBasicMaterial({ color: 0x3d2214, transparent: true, opacity: 0.15, linewidth: 1 });
+
+// ─── PCB Board: dark green FR4 with Canvas Texture
+const pcbMat = new THREE.MeshPhysicalMaterial({
+  map: pcbTex, roughnessMap: pcbTex, color: 0x0a1a0d, roughness: 0.65, metalness: 0.15,
+  clearcoat: 0.1, clearcoatRoughness: 0.6,
+});
+
+// Gold trace
+const traceMat = new THREE.MeshPhysicalMaterial({
+  color: 0xdfb021, roughness: 0.18, metalness: 1.0,
+  clearcoat: 0.4, clearcoatRoughness: 0.1,
+});
+
+// Soldermask tinted (slight green tint on top of pcb)
+const solderMaskMat = new THREE.MeshPhysicalMaterial({
+  color: 0x0e2e12, roughness: 0.6, metalness: 0.1,
+  transparent: true, opacity: 0.6,
+});
+
+// IC chip (black epoxy Base Material)
+const chipMat = new THREE.MeshPhysicalMaterial({
+  color: 0x0d0d0d, roughness: 0.35, metalness: 0.12,
+  clearcoat: 0.55, clearcoatRoughness: 0.18,
+});
+
+// Silver metal (ESP32 can shield, USB-C)
+const shieldMat = new THREE.MeshPhysicalMaterial({
+  color: 0xdde2e8, roughness: 0.25, metalness: 1.0,
+  clearcoat: 0.5, clearcoatRoughness: 0.2,
+});
+
+// Gold/copper - exposed pads and pins
+const packagePinMat = new THREE.MeshPhysicalMaterial({
+  color: 0xdfb021, roughness: 0.15, metalness: 1.0,
+  clearcoat: 0.8, clearcoatRoughness: 0.1,
+});
+
+// Ag/AgCl electrode disc — near chrome silver
+const agClMat = new THREE.MeshPhysicalMaterial({
+  color: 0xffffff, roughness: 0.05, metalness: 1.0,
+  reflectivity: 1.0, clearcoat: 1.0, clearcoatRoughness: 0.02,
+});
+
+// Electrode gel — blue translucent
+const gelMat = new THREE.MeshPhysicalMaterial({
+  color: 0x3399bb, roughness: 0.12, metalness: 0.0,
+  transparent: true, opacity: 0.52, transmission: 0.32, ior: 1.38,
+  clearcoat: 0.85, clearcoatRoughness: 0.04,
+});
+
+// Medical silicone rubber cable
+const rubberMat = new THREE.MeshStandardMaterial({ color: 0x0d0d0d, roughness: 0.9, metalness: 0.0 });
+
+// Conductor (gold/copper) for cable tips
+const conductorMat = new THREE.MeshPhysicalMaterial({
+  color: 0xdfb021, roughness: 0.15, metalness: 1.0,
+});
+
+// White silkscreen text placeholder
+const silkMat = new THREE.MeshBasicMaterial({ color: 0xeaeaea });
+
+// LiPo battery casing — dark grey polymer wrapped in foil
+const lipoCaseMat = new THREE.MeshPhysicalMaterial({
+  color: 0xa0a3a8, roughness: 0.5, metalness: 0.6,
+  clearcoat: 0.2, clearcoatRoughness: 0.4,
+});
+
+// Capacitor ceramic — tan/beige
+const capBodyMat = new THREE.MeshStandardMaterial({ color: 0xa08850, roughness: 0.55, metalness: 0.1 });
+
+// Enclosure walls
+const enclosureMat = new THREE.MeshPhysicalMaterial({
+  color: 0x12151c, roughness: 0.72, metalness: 0.28,
+  clearcoat: 0.18, clearcoatRoughness: 0.45,
+});
 
 /* ══ HEAD / NECK / SHOULDER ══ */
 function buildHead(){
@@ -683,26 +647,8 @@ function buildHead(){
 }
 
 const headGeo = buildHead();
-const headMesh = new THREE.Mesh(buildHead(1.1), skinMat);
+const headMesh = new THREE.Mesh(headGeo, skinMat);
 headMesh.castShadow = true; headMesh.receiveShadow = true;
-
-/* ══ PROCEDURAL NEURAL CORE (BRAIN) ══ */
-const brainGroup = new THREE.Group();
-const brainMat = new THREE.MeshPhongMaterial({ color: 0x00e5aa, transparent: true, opacity: 0.15, shininess: 100, emissive: 0x004433 });
-const spheres = [
-  { p: [0.3, 0.4, -0.1], r: 0.28 }, { p: [-0.3, 0.4, -0.1], r: 0.28 },
-  { p: [0.25, 0.1, -0.2], r: 0.35 }, { p: [-0.25, 0.1, -0.2], r: 0.35 },
-  { p: [0, -0.15, -0.1], r: 0.22 }, { p: [0, 0.5, -0.3], r: 0.25 }
-];
-spheres.forEach(s => {
-  const m = new THREE.Mesh(new THREE.SphereGeometry(s.r, 16, 16), brainMat);
-  m.position.set(s.p[0], s.p[1], s.p[2]);
-  m.scale.set(1.1, 0.8, 1.25);
-  brainGroup.add(m);
-});
-brainGroup.position.set(0, 0.15, 0.1);
-brainGroup.visible = false;
-
 const headWire = new THREE.LineSegments(new THREE.WireframeGeometry(headGeo), wireMat.clone());
 headMesh.add(headWire);
 document.getElementById('vertCount').textContent = headGeo.attributes.position.count.toLocaleString();
@@ -807,11 +753,17 @@ const strapGroup = new THREE.Group();
 const strapMat = new THREE.MeshPhysicalMaterial({ color: 0x1a1a1a, roughness: 0.85, metalness: 0.1, clearcoat: 0.2 });
 
 // Main strap loop around neck/back of head
+// Tight strap loop - closer to neck
+// Tight strap loop - closer to neck but offset for zero-clipping
 const strapCurve = new THREE.EllipseCurve(0, 0, 0.72, 0.92, 0, 2 * Math.PI, false, 0);
 const strapPoints = strapCurve.getPoints(50);
+// Adjusted vertical placement to -1.9 to sit better on the neck taper
 const strapGeo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(strapPoints.map(p => new THREE.Vector3(p.x, -1.9, p.y - 0.08))), 64, 0.075, 12, true);
 const strapMesh = new THREE.Mesh(strapGeo, strapMat);
 strapGroup.add(strapMesh);
+
+// REMOVED: Side branches to avoid visual clutter
+// No scene.add here; will be added to the main group later
 
 /* ══ CABLE HARNESS ══ */
 const dspAnchor = new THREE.Vector3(0, -2.35, -1.05); // Moved to BACK of neck
@@ -819,12 +771,14 @@ const cableGroup = new THREE.Group();
 const signalLines = [];
 
 electrodeData.forEach((d, i) => {
+  // Improved pathing: curve out then wrap back
   const norm = d.pos.clone().normalize();
   let cp1, cp2;
   
   if (d.id === 'SHP' || d.id === 'REF') {
-    cp1 = d.pos.clone().add(new THREE.Vector3(1.0, 0, 0.2));
-    cp2 = new THREE.Vector3(0.8, -1.8, -0.8);
+    // Wrap around side of neck to reach back
+    cp1 = d.pos.clone().add(new THREE.Vector3(1.0, 0, 0.2)); // Push to the side
+    cp2 = new THREE.Vector3(0.8, -1.8, -0.8); // Higher mid-point to hug side-neck
   } else {
     cp1 = d.pos.clone().add(norm.multiplyScalar(0.35)); 
     cp2 = new THREE.Vector3(d.pos.x * 1.4, -1.8, -0.6); 
@@ -832,11 +786,13 @@ electrodeData.forEach((d, i) => {
   
   const curve = new THREE.CubicBezierCurve3(d.pos, cp1, cp2, dspAnchor);
   
+  // Black rubber tube
   const tubeGeo = new THREE.TubeGeometry(curve, 36, 0.013, 8, false);
   const cMesh = new THREE.Mesh(tubeGeo, new THREE.MeshPhysicalMaterial({ color: 0x050505, roughness: 0.85, clearcoat: 0.15 }));
   cMesh.castShadow = true; cMesh.receiveShadow = true;
   cableGroup.add(cMesh);
 
+  // Glowing data pulse trace
   const points = curve.getPoints(50);
   const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
   const lineMat = new THREE.LineDashedMaterial({ 
@@ -848,29 +804,21 @@ electrodeData.forEach((d, i) => {
   cableGroup.add(dataPulse);
   signalLines.push(dataPulse);
 
-  // Neural Bit-Streams (Packets along the cables)
-  const bitCount = 5;
-  const bits = [];
-  for(let b=0; b<bitCount; b++){
-    const bGeo = new THREE.SphereGeometry(0.015, 6, 6);
-    const bMat = new THREE.MeshBasicMaterial({ color: 0x00ffaa, transparent: true, opacity: 0 });
-    const bMesh = new THREE.Mesh(bGeo, bMat);
-    bMesh.userData = { t: Math.random(), speed: 0.002 + Math.random() * 0.003, curve };
-    cableGroup.add(bMesh);
-    bits.push(bMesh);
-  }
-  d.bits = bits;
+  cableGroup.add(cMesh);
+  cableGroup.add(cMesh);
 });
 
 /* ══ REALISTIC DSP UNIT — FULL PCB ASSEMBLY ══ */
 const dspGroup = new THREE.Group();
 
+// ── PCB Board (FR4) matched to index.html SVG ──
 const PCB_W = 0.82, PCB_H = 0.016, PCB_D = 0.55;
 const pcbGeo = new THREE.BoxGeometry(PCB_W, PCB_H, PCB_D);
 const pcbBoard = new THREE.Mesh(pcbGeo, new THREE.MeshStandardMaterial({ color: 0x071e11, roughness: 0.65, metalness: 0.2 }));
 pcbBoard.receiveShadow = true; pcbBoard.castShadow = true;
 dspGroup.add(pcbBoard);
 
+// PCB corner mounting holes (visual only)
 [-PCB_W/2+0.04, PCB_W/2-0.04].forEach(hx => {
   [-PCB_D/2+0.04, PCB_D/2-0.04].forEach(hz => {
     const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, PCB_H*1.1, 16), new THREE.MeshBasicMaterial({color: 0x000000}));
@@ -879,22 +827,31 @@ dspGroup.add(pcbBoard);
   });
 });
 
+// ── Helper: add basic IC with invisible raycast hit box ──
 const interactiveNodes = [];
 const componentsToExplode = [];
 function addIC(name, W, H, D, pinsX, pinsZ, posX, posZ, label){
   const icGroup = new THREE.Group();
+  
+  // Use array of materials to apply laser-etched label ONLY on top (+Y face)
   const matArray = [ chipMat, chipMat, getICMat(name), chipMat, chipMat, chipMat ];
   const body = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), matArray);
   body.castShadow = true; body.receiveShadow = true; icGroup.add(body);
+  
+  // Invisible hitbox for hover interaction
   const hitBox = new THREE.Mesh(new THREE.BoxGeometry(W*1.4, H*2, D*1.4), new THREE.MeshBasicMaterial({visible: false}));
   hitBox.userData = { label, desc: name };
   hitBox.position.copy(body.position);
   icGroup.add(hitBox);
   interactiveNodes.push(hitBox);
+
   icGroup.userData.baseY = PCB_H/2 + H/2;
   componentsToExplode.push(icGroup);
+
+  // Tiny crater dot for Pin 1 indicator
   const dot = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.002, 12), new THREE.MeshPhysicalMaterial({ color: 0x050505, roughness:0.8 }));
   dot.position.set(-W*0.35, H/2+0.001, -D*0.35); icGroup.add(dot);
+  
   if (pinsX > 0) {
     const spX = D / (pinsX + 1);
     [-1, 1].forEach(side => {
@@ -915,10 +872,12 @@ function addIC(name, W, H, D, pinsX, pinsZ, posX, posZ, label){
       }
     });
   }
+  
   icGroup.position.set(posX, icGroup.userData.baseY, posZ);
   dspGroup.add(icGroup);
 }
 
+// 1. ESP32-WROOM-32 (Centrally placed)
 const espGroup = new THREE.Group();
 const espCan = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.035, 0.35), shieldMat);
 espGroup.add(espCan);
@@ -927,16 +886,22 @@ antTrace.position.x = -0.15; espGroup.add(antTrace);
 const espLbl = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.22), new THREE.MeshBasicMaterial({color: 0x222222, map: genICLabel('ESP32-WROOM-32')}));
 espLbl.rotation.x = -Math.PI/2; espLbl.position.set(0.03, 0.018, 0); espGroup.add(espLbl);
 espGroup.userData.baseY = PCB_H/2 + 0.0175;
-espGroup.position.set(0.0, espGroup.userData.baseY, -0.05);
+espGroup.position.set(0.0, espGroup.userData.baseY, -0.05); // Centered
 componentsToExplode.push(espGroup);
 dspGroup.add(espGroup);
 
+// 2. ADS1115 (16-bit ADC)
 addIC('ADS1115', 0.08, 0.020, 0.08, 4, 4, -0.25, -0.12, 'ADS1115 ADC');
+
+// 3. INA128 (3x Amplifiers)
 addIC('INA128-1', 0.07, 0.022, 0.09, 4, 0, -0.28, +0.05, 'INA128 Amp');
 addIC('INA128-2', 0.07, 0.022, 0.09, 4, 0, -0.28, +0.15, 'INA128 Amp');
 addIC('INA128-3', 0.07, 0.022, 0.09, 4, 0, -0.28, +0.25, 'INA128 Amp');
+
+// 4. Power & Logic Management
 addIC('TP4056', 0.06, 0.015, 0.07, 4, 0, 0.25, -0.20, 'TP4056');
 
+// 5. LiPo Battery (Top-Right)
 const lipoGeo = new THREE.BoxGeometry(0.28, 0.055, 0.18);
 const lipoMesh = new THREE.Mesh(lipoGeo, lipoCaseMat);
 lipoMesh.userData.baseY = PCB_H/2 + 0.0275;
@@ -944,6 +909,7 @@ lipoMesh.position.set(0.18, lipoMesh.userData.baseY, -0.14);
 componentsToExplode.push(lipoMesh);
 dspGroup.add(lipoMesh);
 
+// 6. OLED Display (Bottom-Right) displaying "HELLO"
 const oledGroup = new THREE.Group();
 const oledGlass = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.008, 0.13), new THREE.MeshStandardMaterial({color: 0x01111a, roughness: 0.1}));
 const canvas = document.createElement('canvas'); canvas.width = 120; canvas.height = 64;
@@ -953,12 +919,14 @@ const oledTex = new THREE.CanvasTexture(canvas);
 const oledScreen = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.11), new THREE.MeshBasicMaterial({map: oledTex}));
 oledScreen.rotation.x = -Math.PI/2; oledScreen.position.y = 0.0041;
 oledGroup.add(oledGlass, oledScreen);
+// Volumetric Light Spill
 const oledGlow = new THREE.PointLight(0x00e5aa, 0.8, 0.35); oledGlow.position.set(0, 0.05, 0); oledGroup.add(oledGlow);
 oledGroup.userData.baseY = PCB_H/2 + 0.004;
 oledGroup.position.set(0.18, oledGroup.userData.baseY, 0.14);
 componentsToExplode.push(oledGroup);
 dspGroup.add(oledGroup);
 
+// 7. USB-C Port (Right Edge)
 const usbMesh = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.035, 0.08), shieldMat);
 const usbHole = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.018, 0.05), new THREE.MeshBasicMaterial({color: 0x000}));
 usbMesh.add(usbHole);
@@ -967,17 +935,20 @@ usbMesh.position.set(0.38, usbMesh.userData.baseY, 0.04);
 componentsToExplode.push(usbMesh);
 dspGroup.add(usbMesh);
 
+// 8. MicroSD Slot (Right Edge Top)
 const sdMesh = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.022, 0.14), shieldMat);
 sdMesh.userData.baseY = PCB_H/2 + 0.011;
 sdMesh.position.set(0.35, sdMesh.userData.baseY, -0.22);
 componentsToExplode.push(sdMesh);
 dspGroup.add(sdMesh);
 
+// 9. Status LEDs (PWR, BLE)
 const ledMeshes = [];
 const pwrLedGroup = new THREE.Group();
 const pwrLed = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.015, 0.018), new THREE.MeshBasicMaterial({color: 0x00ffaa, transparent: true}));
 const pwrLens = new THREE.Mesh(new THREE.SphereGeometry(0.010, 8, 6, 0, Math.PI*2, 0, Math.PI*0.55), pwrLed.material.clone());
 pwrLens.position.y = 0.008; pwrLed.add(pwrLens);
+// Volumetric Light Spill
 const pwrGlow = new THREE.PointLight(0x00ffaa, 0.5, 0.2); pwrGlow.position.y = 0.02; pwrLed.add(pwrGlow);
 pwrLedGroup.add(pwrLed); pwrLedGroup.userData.baseY = PCB_H/2 + 0.007;
 pwrLedGroup.position.set(0.30, pwrLedGroup.userData.baseY, 0.22);
@@ -988,18 +959,21 @@ const bleLedGroup = new THREE.Group();
 const bleLed = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.015, 0.018), new THREE.MeshBasicMaterial({color: 0x4444ff, transparent: true}));
 const bleLens = new THREE.Mesh(new THREE.SphereGeometry(0.010, 8, 6, 0, Math.PI*2, 0, Math.PI*0.55), bleLed.material.clone());
 bleLens.position.y = 0.008; bleLed.add(bleLens);
+// Volumetric Light Spill
 const bleGlow = new THREE.PointLight(0x4444ff, 0.5, 0.2); bleGlow.position.y = 0.02; bleLed.add(bleGlow);
 bleLedGroup.add(bleLed); bleLedGroup.userData.baseY = PCB_H/2 + 0.007;
 bleLedGroup.position.set(0.35, bleLedGroup.userData.baseY, 0.22);
 componentsToExplode.push(bleLedGroup);
 dspGroup.add(bleLedGroup); ledMeshes.push(bleLed);
 
+// 10. Header Connectors (Left Edge for specific muscle leads)
 const headerBase = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.035, 0.35), new THREE.MeshStandardMaterial({color: 0x111}));
 headerBase.userData.baseY = PCB_H/2 + 0.0175;
 headerBase.position.set(-0.38, headerBase.userData.baseY, 0);
 componentsToExplode.push(headerBase);
 dspGroup.add(headerBase);
 
+// Add Global Tooltip Hover Hitboxes for non-IC modules
 function addHoverNode(parentGrp, W, H, D, px, py, pz, label, desc) {
   const hitBox = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), new THREE.MeshBasicMaterial({visible: false}));
   hitBox.position.set(px, py, pz);
@@ -1016,10 +990,12 @@ addHoverNode(pwrLedGroup, 0.04, 0.04, 0.04, 0, 0, 0, 'PWR LED', 'System Power In
 addHoverNode(bleLedGroup, 0.04, 0.04, 0.04, 0, 0, 0, 'BLE LED', 'Bluetooth Connection Indicator');
 addHoverNode(headerBase, 0.06, 0.06, 0.38, 0, 0, 0, 'I/O Header', 'Primary Electrode Trunk');
 
+// Internal Multi-Color Micro-Wiring Routing
 const jumpersGroup = new THREE.Group();
-const wireColors = [0xff2222, 0x111111, 0xdfb021, 0xeeeeee, 0x3366dd];
+const wireColors = [0xff2222, 0x111111, 0xdfb021, 0xeeeeee, 0x3366dd]; // VCC, GND, Sig, Ref, Active
 for(let w=0; w<5; w++) {
   const from = new THREE.Vector3(-0.36, PCB_H/2+0.0175, -0.12 + w*0.06);
+  // Route first 3 to ADS1299 ADC, next 2 to ESP32
   const to = w < 3 ? new THREE.Vector3(-0.08, PCB_H/2 + 0.01, -0.10 + w*0.04) : new THREE.Vector3(-0.25, PCB_H/2 + 0.035, 0.15 - (w-3)*0.04);
   const mid1 = from.clone().lerp(to, 0.3); mid1.y += 0.05;
   const mid2 = from.clone().lerp(to, 0.7); mid2.y += 0.03;
@@ -1030,14 +1006,17 @@ for(let w=0; w<5; w++) {
 }
 dspGroup.add(jumpersGroup);
 
-dspGroup.position.set(0, -2.35, -1.05);
-dspGroup.rotation.x = -0.55; dspGroup.rotation.y = Math.PI;
+// REMOVED: Label system as per user request
+
+// REMOVED: Enclosure walls to keep the PCB fully visible!
+
+dspGroup.position.set(0, -2.35, -1.05); // BACK OF NECK
+dspGroup.rotation.x = -0.55; dspGroup.rotation.y = Math.PI; // Flipped to face outward from back
 
 /* ══ GROUP EVERYTHING ══ */
 const group = new THREE.Group();
 group.add(headMesh); group.add(neckMesh); group.add(shoulderMesh);
 group.add(electrodeGroup); group.add(cableGroup); group.add(dspGroup); group.add(strapGroup);
-group.add(brainGroup);
 group.position.y = 0.55;
 scene.add(group);
 
@@ -1085,10 +1064,11 @@ function highlightElectrode(idx){
   const ed = electrodeData[idx];
   const angle = Math.atan2(ed.pos.x, ed.pos.z);
   
+  // Custom camera logic for bottom nodes (SHP, REF) or side jaw (ML2, MR2)
   targetRotY = -angle; 
   if (ed.id === 'SHP' || ed.id === 'REF') {
-    targetRotX = -0.55;
-    targetPanY = -0.4;
+    targetRotX = -0.55; // Tilt camera UP to look under chin/neck
+    targetPanY = -0.4;   // Pan down to center the node
     targetZoom = 4.0;
   } else {
     targetRotX = Math.atan2(-ed.pos.y+0.5, 2)*0.3;
@@ -1100,6 +1080,7 @@ function highlightElectrode(idx){
   autoTimer = setTimeout(() => { autoRotate = true; }, 5500);
 }
 
+// Global UI Tooltip Injection
 const tooltip = document.createElement('div');
 tooltip.id = '3d-tooltip';
 tooltip.style.cssText = 'position:fixed; pointer-events:none; opacity:0; background:rgba(0,15,10,0.85); border:1px solid #00e5aa; color:#fff; font-family:"JetBrains Mono",monospace; font-size:10px; padding:8px 12px; border-radius:4px; transform:translate(-50%, -150%); transition:opacity 0.2s ease; z-index:100; box-shadow:0 0 16px rgba(0,229,170,0.15); backdrop-filter:blur(4px);';
@@ -1162,25 +1143,36 @@ function drawAnnotations(){
   });
 
   const drawNodeSet = (nodes, isRightSide) => {
+    // Sort by physical screen Y to avoid crossed wires
     nodes.sort((a, b) => a.scr.y - b.scr.y);
+
+    // Give each node a strictly defined vertical slot to eliminate overlap
     const startY = emgCanvas.height / 2 - ((nodes.length - 1) * 60) / 2;
+    
     nodes.forEach((node, i) => {
       const offsetX = isRightSide ? 100 : -100;
       const lx = node.scr.x + offsetX;
       const ly = startY + (i * 60);
+
       const isActive = node.idx === activeElectrode;
       const isRef = node.data.id === 'REF';
       const col = isActive ? 'rgba(0,229,170,0.65)' : (isRef ? 'rgba(0,255,136,0.25)' : 'rgba(255,255,255,0.12)');
+      
       emgCtx.beginPath(); emgCtx.moveTo(node.scr.x, node.scr.y); emgCtx.lineTo(node.scr.x + offsetX * 0.4, ly); emgCtx.lineTo(lx, ly);
       emgCtx.strokeStyle = col; emgCtx.lineWidth = isActive ? 1.2 : 0.7; emgCtx.stroke();
+      
       emgCtx.beginPath(); emgCtx.arc(node.scr.x, node.scr.y, isActive ? 5 : 3, 0, Math.PI * 2);
       emgCtx.fillStyle = isActive ? 'rgba(0,229,170,0.9)' : (isRef ? 'rgba(0,255,136,0.6)' : 'rgba(255,255,255,0.42)'); emgCtx.fill();
+      
       emgCtx.font = '8px "JetBrains Mono",monospace';
       emgCtx.fillStyle = isActive ? 'rgba(0,229,170,0.85)' : (isRef ? 'rgba(0,255,136,0.6)' : 'rgba(255,255,255,0.28)');
       emgCtx.textAlign = isRightSide ? 'left' : 'right';
       emgCtx.fillText(node.data.label, lx + (isRightSide ? 4 : -4), ly - 5);
+      
       emgCtx.fillStyle = 'rgba(255,255,255,0.14)';
       emgCtx.fillText(node.data.channel + ' · ' + node.data.impedance, lx + (isRightSide ? 4 : -4), ly + 8);
+      
+      // Mini waveform preview
       const sqLen = 32, sqX = isRightSide ? lx + 4 : lx - sqLen - 4;
       emgCtx.beginPath();
       for(let sx = 0; sx <= sqLen; sx++){
@@ -1192,6 +1184,7 @@ function drawAnnotations(){
       emgCtx.lineWidth = 0.9; emgCtx.stroke();
     });
   };
+
   drawNodeSet(leftNodes, false);
   drawNodeSet(rightNodes, true);
 }
@@ -1200,6 +1193,7 @@ function drawAnnotations(){
 const hoverRaycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2(-10, -10);
 let hoveredNode = null;
+
 let isDragging=false, prevMouse={x:0,y:0};
 let rotY=-0.28, rotX=0.06, targetRotY=-0.28, targetRotX=0.06;
 let autoRotate=true, autoTimer=null;
@@ -1210,6 +1204,7 @@ const dom = renderer.domElement;
 dom.addEventListener('mousemove',e=>{ 
   mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  
   if(isDragging) {
     targetRotY+=(e.clientX-prevMouse.x)*0.008; 
     targetRotX+=(e.clientY-prevMouse.y)*0.006; 
@@ -1222,7 +1217,15 @@ dom.addEventListener('mousedown',e=>{ isDragging=true; autoRotate=false; clearTi
 dom.addEventListener('mouseup',()=>{ isDragging=false; autoTimer=setTimeout(()=>{ autoRotate=true; },4000); });
 dom.addEventListener('dblclick',()=>{ targetRotY=-0.28; targetRotX=0.06; targetZoom=6.8; targetPanY=0.35; activeElectrode=-1; document.querySelectorAll('.electrode-card').forEach(c=>c.classList.remove('active')); electrodeObjects.forEach(({mesh,disc})=>{ disc.material.emissive=new THREE.Color(0x000000); mesh.scale.setScalar(1.0); }); });
 dom.addEventListener('wheel',e=>{ targetZoom+=e.deltaY*0.006; targetZoom=Math.max(3.0,Math.min(13,targetZoom)); },{passive:true});
+let touchPrev=null;
+dom.addEventListener('touchstart',e=>{ autoRotate=false; clearTimeout(autoTimer); touchPrev={x:e.touches[0].clientX,y:e.touches[0].clientY}; 
+  mouse.x = (e.touches[0].clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.touches[0].clientY / window.innerHeight) * 2 + 1;
+});
+dom.addEventListener('touchmove',e=>{ if(!touchPrev)return; targetRotY+=(e.touches[0].clientX-touchPrev.x)*0.008; targetRotX+=(e.touches[0].clientY-touchPrev.y)*0.006; targetRotX=Math.max(-0.65,Math.min(0.65,targetRotX)); touchPrev={x:e.touches[0].clientX,y:e.touches[0].clientY}; });
+dom.addEventListener('touchend',()=>{ touchPrev=null; autoTimer=setTimeout(()=>{ autoRotate=true; },4000); });
 
+/* ══ VIEW PRESETS ══ */
 window.setView=function(view,btn){
   document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
   autoRotate=false; clearTimeout(autoTimer);
@@ -1245,16 +1248,15 @@ let explodeProgress = 0;
 window.toggleExploded = function(btn) {
   isExploded = !isExploded;
   btn.classList.toggle('active', isExploded);
-  addHudLog(isExploded ? "Initiating Exploded View Sequence" : "Reassembling Hardware Module");
   if(isExploded){ targetRotY=0.08; targetRotX=0.45; targetZoom=6.5; autoRotate=false; }
 };
 
 window.toggleDiagnostic = function(btn) {
   isDiagnostic = !isDiagnostic;
   btn.classList.toggle('active', isDiagnostic);
-  addHudLog(isDiagnostic ? "Neural Core X-Ray Active" : "Returning to Surface Rendering");
   
   if(isDiagnostic){
+    // Holographic Matrix mode
     headMesh.material = new THREE.MeshBasicMaterial({color: 0x00ffaa, wireframe:true, transparent:true, opacity:0.12});
     neckMesh.material = headMesh.material; shoulderMesh.material = headMesh.material;
     pcbBoard.material = new THREE.MeshBasicMaterial({color: 0x002211, wireframe:true, transparent:true, opacity:0.4});
@@ -1273,61 +1275,41 @@ window.toggleCables=function(el){ el.classList.toggle('on'); cableGroup.visible=
 window.toggleDSP=function(el){ el.classList.toggle('on'); dspGroup.visible=el.classList.contains('on'); };
 window.toggleAnnotations=function(el){ el.classList.toggle('on'); showAnnotations=el.classList.contains('on'); };
 window.toggleAutoRotateUI=function(el){ el.classList.toggle('on'); autoRotate=el.classList.contains('on'); };
-window.toggleParticles=function(el){ 
-  el.classList.toggle('on'); 
-  const vis = el.classList.contains('on');
-  electrodeData.forEach(d => { if(d.bits) d.bits.forEach(b => b.visible = vis); }); 
-};
+window.toggleParticles=function(el){ el.classList.toggle('on'); particles.visible=el.classList.contains('on'); };
 window.toggleSection=function(header){ header.parentElement.classList.toggle('open'); };
 
-/* ══ AMBIENT NEURAL AUDIO ══ */
-let audioCtx = null, oscillator = null, gainNode = null;
-window.toggleAudio = function(el) {
-  el.classList.toggle('on');
-  const isOn = el.classList.contains('on');
-  el.textContent = isOn ? 'SOUND: ON' : 'SOUND: OFF';
-  addHudLog(isOn ? "Audio Synapse Engaged" : "Audio Synapse Dampened");
-  
-  if (isOn) {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      oscillator = audioCtx.createOscillator();
-      gainNode = audioCtx.createGain();
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(80, audioCtx.currentTime); 
-      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      oscillator.start();
-    }
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    gainNode.gain.setTargetAtTime(0.08, audioCtx.currentTime, 0.1);
-  } else if (gainNode) {
-    gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
-  }
-};
+/* ══ ML BARS ══ */
+function animateMLBars(){ document.querySelectorAll('.ml-row-fill').forEach(bar=>{ bar.style.width=bar.dataset.w+'%'; }); }
+
+/* ══ RESIZE ══ */
+window.addEventListener('resize',()=>{ const w=viewport.clientWidth,h=viewport.clientHeight; camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h); composer.setSize(w,h); updateEMGCanvas(); });
+
+/* ══ FPS ══ */
+let frameCount=0, lastFPSTime=performance.now();
+const fpsEl=document.getElementById('fpsCounter');
+function updateFPS(){ frameCount++; const now=performance.now(); if(now-lastFPSTime>=1000){ fpsEl.textContent=frameCount+' FPS'; frameCount=0; lastFPSTime=now; } }
+
+/* ══ FADE-IN BUILD SEQUENCE ══ */
+group.position.y = -5; // Start collapsed
+group.scale.setScalar(0.01);
+
+/* ══ RENDER LOOP ══ */
+let clock=0, sigTimer=0;
+let entranceProgress = 0;
 
 function animate(){
   requestAnimationFrame(animate);
   clock += 0.012;
   
-  if(cinematicPass) {
-    cinematicPass.uniforms.time.value = clock;
-    cinematicPass.uniforms.amount.value = 0.0015 + Math.sin(clock*2)*0.0005; 
-  }
-
-  if (gainNode && isDiagnostic) {
-    const pulse = 80 + Math.sin(clock * 10) * 20;
-    oscillator.frequency.setTargetAtTime(pulse, audioCtx.currentTime, 0.1);
-  }
-  
+  // Sleek entrance animation
   if (entranceProgress < 1.0) {
     entranceProgress += 0.015;
-    const ease = 1 - Math.pow(1 - entranceProgress, 4);
+    const ease = 1 - Math.pow(1 - entranceProgress, 4); // Quartic ease out
     group.scale.setScalar(ease * 1.0);
-    group.position.y = -5 + (ease * 5.55);
+    group.position.y = -5 + (ease * 5.55); // Rise up to 0.55
   }
 
+  // Smooth camera sweeps and auto-rotate
   if(autoRotate) targetRotY += 0.0015;
   rotY += (targetRotY - rotY) * 0.04; 
   rotX += (targetRotX - rotX) * 0.04; 
@@ -1335,13 +1317,7 @@ function animate(){
   panY += (targetPanY - panY) * 0.04;
   group.rotation.y = rotY; group.rotation.x = rotX;
   
-  brainGroup.visible = isDiagnostic;
-  if (isDiagnostic) {
-    const s = 1.0 + Math.sin(clock * 2) * 0.05;
-    brainGroup.scale.setScalar(s);
-    brainGroup.children.forEach(m => m.material.opacity = 0.15 + Math.sin(clock*4)*0.05);
-  }
-
+  // Hande Explode State Tweening
   const targetExplode = isExploded ? 1.0 : 0.0;
   explodeProgress += (targetExplode - explodeProgress) * 0.06;
   
@@ -1350,39 +1326,35 @@ function animate(){
       const lift = (i % 3 === 0 ? 0.08 : (i % 2 === 0 ? 0.15 : 0.25)) * explodeProgress;
       comp.position.y = (comp.userData.baseY || 0) + lift;
     });
+
     electrodeObjects.forEach((el, i) => {
       const lift = 0.25 * explodeProgress;
       el.mesh.position.copy(el.data.pos).add(el.data.pos.clone().normalize().multiplyScalar(lift));
     });
+
     jumpersGroup.position.y = explodeProgress * 0.06;
     if(pcbBoard) pcbBoard.position.y = -explodeProgress * 0.04;
-    strapGroup.position.y = explodeProgress * 0.05;
+    strapGroup.position.y = explodeProgress * 0.05; // Follow neck rise slightly
+
   } else if (explodeProgress > 0 && explodeProgress < 0.001) {
-    componentsToExplode.forEach(comp => { comp.position.y = comp.userData.baseY || 0; });
-    electrodeObjects.forEach(el => { el.mesh.position.copy(el.data.pos); });
+    componentsToExplode.forEach(comp => {
+      comp.position.y = comp.userData.baseY || 0;
+    });
+    electrodeObjects.forEach(el => {
+      el.mesh.position.copy(el.data.pos);
+    });
     jumpersGroup.position.y = 0; if(pcbBoard) pcbBoard.position.y = 0;
     strapGroup.position.y = 0;
     explodeProgress = 0;
   }
 
-  electrodeData.forEach((d, idx) => {
-    if(d.bits) {
-      d.bits.forEach(bit => {
-        bit.userData.t += bit.userData.speed * (isDiagnostic ? 2 : 1);
-        if(bit.userData.t > 1) bit.userData.t = 0;
-        const pos = bit.userData.curve.getPointAt(bit.userData.t);
-        bit.position.copy(pos);
-        bit.material.opacity = isDiagnostic ? 0.8 : 0;
-        bit.scale.setScalar(0.5 + Math.sin(clock*5+idx)*0.2);
-      });
-    }
-  });
-
+  // Animate Data Pulses along cables
   signalLines.forEach((sl, i) => {
     sl.material.dashOffset -= 0.012 + (i%3)*0.004 + (isDiagnostic ? 0.02 : 0); 
     sl.material.color.setHex(isDiagnostic ? 0x00ffaa : 0x00e5aa);
   });
 
+  // Handle Raycaster Tooltips
   hoverRaycaster.setFromCamera(mouse, camera);
   const intersects = hoverRaycaster.intersectObjects(interactiveNodes, false);
   if (intersects.length > 0) {
@@ -1390,49 +1362,44 @@ function animate(){
     if (hit !== hoveredNode) hoveredNode = hit;
     tooltip.innerHTML = `<span style="color:#888;">Hardware Component</span><br><b style="font-size:12px;color:#fff;">${hit.userData.label}</b><br>${hit.userData.desc}`;
     tooltip.style.opacity = '1';
+    
+    // Project hit point to screen
     const hitVec = new THREE.Vector3(); hit.getWorldPosition(hitVec);
     const scr = projectToScreen(hitVec);
     tooltip.style.left = scr.x + 'px';
     tooltip.style.top = (scr.y - 15) + 'px';
-    if(Math.random()<0.02) addHudLog(`Inspecting: ${hit.userData.label}`);
   } else {
     hoveredNode = null;
     tooltip.style.opacity = '0';
   }
 
+  // Subtle breathing
   const breathe = Math.sin(clock*0.45)*0.0028;
   group.scale.setScalar((entranceProgress >= 1 ? 1 : group.scale.x) + breathe);
 
+  // Electrode LED pulse
   electrodeObjects.forEach(({led},i) => {
     if(led){ const p=0.5+0.5*Math.abs(Math.sin(clock*2.6+i*1.1)); led.material.opacity = 0.55+0.45*p; led.parent.scale.setScalar(0.85+0.25*p); }
   });
 
+  // DSP LED sequence
   ledMeshes.forEach((led,i) => {
     const phase = clock * 2.8 + i * 1.4;
     led.material.opacity = 0.18 + 0.75 * Math.max(0, Math.sin(phase));
     led.children[0].material.opacity = led.material.opacity * 0.7;
   });
 
+  // PCB ambient light pulse (green glow under PCB)
   pcbLight.intensity = 0.55 + 0.28 * Math.sin(clock * 1.2);
+
   camera.position.z = zoom;
   camera.lookAt(0, panY, 0);
   composer.render();
   drawAnnotations();
+
   sigTimer++; if(sigTimer%2===0) updateSignals();
   updateFPS();
 }
-
-function animateMLBars(){ document.querySelectorAll('.ml-row-fill').forEach(bar=>{ bar.style.width=bar.dataset.w+'%'; }); }
-
-function addHudLog(txt) {
-  const log = document.getElementById('hudLog');
-  if(!log) return;
-  const entry = document.createElement('div'); entry.className = 'hud-log-entry';
-  entry.textContent = `[${new Date().toLocaleTimeString().split(' ')[0]}] ${txt}`;
-  log.prepend(entry);
-  if(log.children.length > 6) log.lastElementChild.remove();
-}
-
 animate();
 
 })();
