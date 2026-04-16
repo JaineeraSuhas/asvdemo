@@ -642,7 +642,8 @@ const solderMaskMat = new THREE.MeshPhysicalMaterial({
 });
 
 // IC chip (black epoxy Base Material)
-const chipMat = new THREE.MeshPhysicalMaterial({
+const chipMat = new THREE.MeshPhysicalMaterial({ color: 0x0d0d0d, roughness: 0.35, metalness: 0.12, clearcoat: 0.55, clearcoatRoughness: 0.18 });
+
 // Ag/AgCl electrode disc — near chrome silver
 const agClMat = new THREE.MeshPhysicalMaterial({
   color: 0xffffff, roughness: 0.05, metalness: 1.0,
