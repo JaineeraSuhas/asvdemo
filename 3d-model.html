@@ -242,6 +242,10 @@ body::after {
           <button class="view-btn" onclick="setView('pcb',this)">PCB</button>
           <button class="view-btn" onclick="setView('close',this)">CLOSE-UP</button>
         </div>
+        <div class="view-btns" style="margin-top:8px;">
+          <button class="view-btn" id="btnExploded" onclick="toggleExploded(this)" style="width:48%; background:rgba(255,200,0,0.1); border-color:rgba(255,200,0,0.3); color:#ffcc00; letter-spacing: 2px;">EXPLODED</button>
+          <button class="view-btn" id="btnDiagnostic" onclick="toggleDiagnostic(this)" style="width:48%; background:rgba(0,255,170,0.1); border-color:rgba(0,255,170,0.3); color:#00ffaa; letter-spacing: 2px;">DIAGNOSTIC</button>
+        </div>
         <div class="toggle-row"><span class="toggle-label">WIREFRAME</span><div class="toggle-switch on" id="toggleWire" onclick="toggleWireframe(this)"></div></div>
         <div class="toggle-row"><span class="toggle-label">ELECTRODES</span><div class="toggle-switch on" id="toggleElectrodes" onclick="toggleElectrodes(this)"></div></div>
         <div class="toggle-row"><span class="toggle-label">CABLES</span><div class="toggle-switch on" id="toggleCables" onclick="toggleCables(this)"></div></div>
@@ -741,6 +745,7 @@ dspGroup.add(pcbBoard);
 
 // ── Helper: add basic IC with invisible raycast hit box ──
 const interactiveNodes = [];
+const componentsToExplode = [];
 function addIC(name, W, H, D, pinsX, pinsZ, posX, posZ, label){
   const icGroup = new THREE.Group();
   
@@ -755,6 +760,9 @@ function addIC(name, W, H, D, pinsX, pinsZ, posX, posZ, label){
   hitBox.position.copy(body.position);
   icGroup.add(hitBox);
   interactiveNodes.push(hitBox);
+
+  icGroup.userData.baseY = PCB_H/2 + H/2;
+  componentsToExplode.push(icGroup);
 
   // Tiny crater dot for Pin 1 indicator
   const dot = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.002, 12), new THREE.MeshPhysicalMaterial({ color: 0x050505, roughness:0.8 }));
@@ -781,7 +789,7 @@ function addIC(name, W, H, D, pinsX, pinsZ, posX, posZ, label){
     });
   }
   
-  icGroup.position.set(posX, PCB_H/2 + H/2, posZ);
+  icGroup.position.set(posX, icGroup.userData.baseY, posZ);
   dspGroup.add(icGroup);
 }
 
@@ -793,7 +801,9 @@ const antTrace = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.035, 0.35), new TH
 antTrace.position.x = -0.15; espGroup.add(antTrace);
 const espLbl = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.22), new THREE.MeshBasicMaterial({color: 0x222222}));
 espLbl.rotation.x = -Math.PI/2; espLbl.position.set(0.03, 0.018, 0); espGroup.add(espLbl);
-espGroup.position.set(-0.25, PCB_H/2 + 0.0175, 0.02);
+espGroup.userData.baseY = PCB_H/2 + 0.0175;
+espGroup.position.set(-0.25, espGroup.userData.baseY, 0.02);
+componentsToExplode.push(espGroup);
 dspGroup.add(espGroup);
 
 // 2. ADS1115 (Center-Left)
@@ -809,7 +819,9 @@ addIC('LM7805', 0.08, 0.022, 0.08, 3, 0, 0.25, -0.10, 'LM7805');
 // 5. LiPo Battery (Top-Right)
 const lipoGeo = new THREE.BoxGeometry(0.28, 0.055, 0.18);
 const lipoMesh = new THREE.Mesh(lipoGeo, lipoCaseMat);
-lipoMesh.position.set(0.18, PCB_H/2 + 0.0275, -0.14);
+lipoMesh.userData.baseY = PCB_H/2 + 0.0275;
+lipoMesh.position.set(0.18, lipoMesh.userData.baseY, -0.14);
+componentsToExplode.push(lipoMesh);
 dspGroup.add(lipoMesh);
 
 // 6. OLED Display (Bottom-Right) displaying "HELLO"
@@ -822,39 +834,75 @@ const oledTex = new THREE.CanvasTexture(canvas);
 const oledScreen = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.11), new THREE.MeshBasicMaterial({map: oledTex}));
 oledScreen.rotation.x = -Math.PI/2; oledScreen.position.y = 0.0041;
 oledGroup.add(oledGlass, oledScreen);
-oledGroup.position.set(0.18, PCB_H/2 + 0.004, 0.14);
+// Volumetric Light Spill
+const oledGlow = new THREE.PointLight(0x00e5aa, 0.8, 0.35); oledGlow.position.set(0, 0.05, 0); oledGroup.add(oledGlow);
+oledGroup.userData.baseY = PCB_H/2 + 0.004;
+oledGroup.position.set(0.18, oledGroup.userData.baseY, 0.14);
+componentsToExplode.push(oledGroup);
 dspGroup.add(oledGroup);
 
 // 7. USB-C Port (Right Edge)
 const usbMesh = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.035, 0.08), shieldMat);
 const usbHole = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.018, 0.05), new THREE.MeshBasicMaterial({color: 0x000}));
 usbMesh.add(usbHole);
-usbMesh.position.set(0.38, PCB_H/2 + 0.0175, 0.04);
+usbMesh.userData.baseY = PCB_H/2 + 0.0175;
+usbMesh.position.set(0.38, usbMesh.userData.baseY, 0.04);
+componentsToExplode.push(usbMesh);
 dspGroup.add(usbMesh);
 
 // 8. MicroSD Slot (Right Edge Top)
 const sdMesh = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.022, 0.14), shieldMat);
-sdMesh.position.set(0.35, PCB_H/2 + 0.011, -0.22);
+sdMesh.userData.baseY = PCB_H/2 + 0.011;
+sdMesh.position.set(0.35, sdMesh.userData.baseY, -0.22);
+componentsToExplode.push(sdMesh);
 dspGroup.add(sdMesh);
 
 // 9. Status LEDs (PWR, BLE)
 const ledMeshes = [];
+const pwrLedGroup = new THREE.Group();
 const pwrLed = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.015, 0.018), new THREE.MeshBasicMaterial({color: 0x00ffaa, transparent: true}));
 const pwrLens = new THREE.Mesh(new THREE.SphereGeometry(0.010, 8, 6, 0, Math.PI*2, 0, Math.PI*0.55), pwrLed.material.clone());
 pwrLens.position.y = 0.008; pwrLed.add(pwrLens);
-pwrLed.position.set(0.30, PCB_H/2 + 0.007, 0.22);
-dspGroup.add(pwrLed); ledMeshes.push(pwrLed);
+// Volumetric Light Spill
+const pwrGlow = new THREE.PointLight(0x00ffaa, 0.5, 0.2); pwrGlow.position.y = 0.02; pwrLed.add(pwrGlow);
+pwrLedGroup.add(pwrLed); pwrLedGroup.userData.baseY = PCB_H/2 + 0.007;
+pwrLedGroup.position.set(0.30, pwrLedGroup.userData.baseY, 0.22);
+componentsToExplode.push(pwrLedGroup);
+dspGroup.add(pwrLedGroup); ledMeshes.push(pwrLed);
 
+const bleLedGroup = new THREE.Group();
 const bleLed = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.015, 0.018), new THREE.MeshBasicMaterial({color: 0x4444ff, transparent: true}));
 const bleLens = new THREE.Mesh(new THREE.SphereGeometry(0.010, 8, 6, 0, Math.PI*2, 0, Math.PI*0.55), bleLed.material.clone());
 bleLens.position.y = 0.008; bleLed.add(bleLens);
-bleLed.position.set(0.35, PCB_H/2 + 0.007, 0.22);
-dspGroup.add(bleLed); ledMeshes.push(bleLed);
+// Volumetric Light Spill
+const bleGlow = new THREE.PointLight(0x4444ff, 0.5, 0.2); bleGlow.position.y = 0.02; bleLed.add(bleGlow);
+bleLedGroup.add(bleLed); bleLedGroup.userData.baseY = PCB_H/2 + 0.007;
+bleLedGroup.position.set(0.35, bleLedGroup.userData.baseY, 0.22);
+componentsToExplode.push(bleLedGroup);
+dspGroup.add(bleLedGroup); ledMeshes.push(bleLed);
 
 // 10. Header Connectors (Left Edge for specific muscle leads)
 const headerBase = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.035, 0.35), new THREE.MeshStandardMaterial({color: 0x111}));
-headerBase.position.set(-0.38, PCB_H/2 + 0.0175, 0);
+headerBase.userData.baseY = PCB_H/2 + 0.0175;
+headerBase.position.set(-0.38, headerBase.userData.baseY, 0);
+componentsToExplode.push(headerBase);
 dspGroup.add(headerBase);
+
+// Internal Multi-Color Micro-Wiring Routing
+const jumpersGroup = new THREE.Group();
+const wireColors = [0xff2222, 0x111111, 0xdfb021, 0xeeeeee, 0x3366dd]; // VCC, GND, Sig, Ref, Active
+for(let w=0; w<5; w++) {
+  const from = new THREE.Vector3(-0.36, PCB_H/2+0.0175, -0.12 + w*0.06);
+  // Route first 3 to ADS1299 ADC, next 2 to ESP32
+  const to = w < 3 ? new THREE.Vector3(-0.08, PCB_H/2 + 0.01, -0.10 + w*0.04) : new THREE.Vector3(-0.25, PCB_H/2 + 0.035, 0.15 - (w-3)*0.04);
+  const mid1 = from.clone().lerp(to, 0.3); mid1.y += 0.05;
+  const mid2 = from.clone().lerp(to, 0.7); mid2.y += 0.03;
+  const curve = new THREE.CubicBezierCurve3(from, mid1, mid2, to);
+  const wrGeo = new THREE.TubeGeometry(curve, 16, 0.0025, 6, false);
+  const wrMesh = new THREE.Mesh(wrGeo, new THREE.MeshPhysicalMaterial({ color: wireColors[w], roughness: 0.8, clearcoat: 0.3 }));
+  wrMesh.castShadow = true; jumpersGroup.add(wrMesh);
+}
+dspGroup.add(jumpersGroup);
 
 // REMOVED: Enclosure walls to keep the PCB fully visible!
 
@@ -1074,6 +1122,33 @@ window.setView=function(view,btn){
   }
   autoTimer=setTimeout(()=>{ autoRotate=true; },7000);
 };
+
+let isExploded = false;
+let isDiagnostic = false;
+let explodeProgress = 0;
+
+window.toggleExploded = function(btn) {
+  isExploded = !isExploded;
+  btn.classList.toggle('active', isExploded);
+  if(isExploded){ targetRotY=0.08; targetRotX=0.45; targetZoom=6.5; autoRotate=false; }
+};
+
+window.toggleDiagnostic = function(btn) {
+  isDiagnostic = !isDiagnostic;
+  btn.classList.toggle('active', isDiagnostic);
+  
+  if(isDiagnostic){
+    // Holographic Matrix mode
+    headMesh.material = new THREE.MeshBasicMaterial({color: 0x00ffaa, wireframe:true, transparent:true, opacity:0.12});
+    neckMesh.material = headMesh.material; shoulderMesh.material = headMesh.material;
+    pcbBoard.material = new THREE.MeshBasicMaterial({color: 0x002211, wireframe:true, transparent:true, opacity:0.4});
+    keyLight.intensity = 0.2; hemi.intensity = 0.1; pcbLight.intensity = 4.0;
+  } else {
+    headMesh.material = skinMat; neckMesh.material = skinMat; shoulderMesh.material = skinMat;
+    pcbBoard.material = pcbMat;
+    keyLight.intensity = 2.6; hemi.intensity = 0.5; pcbLight.intensity = 0.8;
+  }
+};
 window.toggleWireframe=function(el){ el.classList.toggle('on'); const vis=el.classList.contains('on'); headMesh.children.forEach(c=>{ if(c.isLineSegments) c.visible=vis; }); neckMesh.children.forEach(c=>{ if(c.isLineSegments) c.visible=vis; }); };
 window.toggleElectrodes=function(el){ el.classList.toggle('on'); electrodeGroup.visible=el.classList.contains('on'); };
 window.toggleCables=function(el){ el.classList.toggle('on'); cableGroup.visible=el.classList.contains('on'); };
@@ -1121,9 +1196,28 @@ function animate(){
   zoom += (targetZoom - zoom) * 0.04;
   group.rotation.y = rotY; group.rotation.x = rotX;
   
+  // Hande Explode State Tweening
+  const targetExplode = isExploded ? 1.0 : 0.0;
+  explodeProgress += (targetExplode - explodeProgress) * 0.06;
+  
+  if(explodeProgress > 0.001){
+    componentsToExplode.forEach((comp, i) => {
+      // Calculate a staggered lift based on array index
+      const lift = (i % 3 === 0 ? 0.08 : (i % 2 === 0 ? 0.15 : 0.25)) * explodeProgress;
+      comp.position.y = comp.userData.baseY + lift;
+    });
+    jumpersGroup.position.y = explodeProgress * 0.06;
+    if(pcbBoard) pcbBoard.position.y = -explodeProgress * 0.04;
+  } else if (explodeProgress > 0 && explodeProgress < 0.001) {
+    componentsToExplode.forEach(comp => comp.position.y = comp.userData.baseY);
+    jumpersGroup.position.y = 0; if(pcbBoard) pcbBoard.position.y = 0;
+    explodeProgress = 0;
+  }
+
   // Animate Data Pulses along cables
   signalLines.forEach((sl, i) => {
-    sl.material.dashOffset -= 0.012 + (i%3)*0.004; // Different speeds
+    sl.material.dashOffset -= 0.012 + (i%3)*0.004 + (isDiagnostic ? 0.02 : 0); 
+    sl.material.color.setHex(isDiagnostic ? 0x00ffaa : 0x00e5aa);
   });
 
   // Handle Raycaster Tooltips
