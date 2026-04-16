@@ -610,9 +610,9 @@ function buildHead(){
     // 1. Nose Bridge and Tip
     const nK = Math.exp(-(bx*bx/0.012 + (y-0.1)**2/0.06 + (z-1.0)**2/0.08));
     if(z>0.5){ z += nK * 0.70; y -= nK * 0.20; }
-    // 2. Hollow Eye Sockets (Extreme depth)
+    // 2. Hollow Eye Sockets (MAX depth)
     const esK = Math.exp(-((bx-0.38)**2/0.05 + (y-0.38)**2/0.05 + (z-0.75)**2/0.12));
-    z -= esK * 1.15; x -= Math.sign(x)*esK*0.18; y += esK * 0.12;
+    z -= esK * 1.35; x -= Math.sign(x)*esK*0.22; y += esK * 0.15;
     // 3. Zygomatic Arches (Cheekbones)
     const ckK = Math.exp(-((bx-0.62)**2/0.03 + (y-0.08)**2/0.03 + (z-0.7)**2/0.1));
     if(z>0.2){ z += ckK * 0.28; x += Math.sign(x)*ckK*0.18; y += ckK * 0.08; }
@@ -725,18 +725,11 @@ electrodeData.forEach((d, idx) => {
   snapRing.position.z = -0.014;
   elGroup.add(snapRing);
 
-  // 5. Cable exit stub
-  const stubGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.045, 10);
-  const stub = new THREE.Mesh(stubGeo, chipMat.clone());
-  stub.rotation.x = Math.PI / 2;
-  stub.position.z = -0.040;
-  elGroup.add(stub);
-
-  // 6. Gold pin tip
+  // Gold pin tip
   const pinGeo = new THREE.CylinderGeometry(0.006, 0.006, 0.010, 8);
   const pin = new THREE.Mesh(pinGeo, packagePinMat.clone());
   pin.rotation.x = Math.PI / 2;
-  pin.position.z = -0.065;
+  pin.position.z = -0.015;
   elGroup.add(pin);
 
   // 7. Status LED embedded in housing
@@ -767,19 +760,7 @@ const strapGeo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(strapPoints.m
 const strapMesh = new THREE.Mesh(strapGeo, strapMat);
 strapGroup.add(strapMesh);
 
-// Side branches to electrodes
-electrodeData.forEach((d, i) => {
-  if (d.label.includes('MASSETER')) {
-    const branchCurve = new THREE.QuadraticBezierCurve3(
-      new THREE.Vector3(d.pos.x, d.pos.y, d.pos.z),
-      new THREE.Vector3(d.pos.x * 1.1, d.pos.y, -0.4),
-      new THREE.Vector3(d.pos.x * 0.9, -2.1, -0.8)
-    );
-    const branchGeo = new THREE.TubeGeometry(branchCurve, 20, 0.04, 8, false);
-    const branchMesh = new THREE.Mesh(branchGeo, strapMat);
-    strapGroup.add(branchMesh);
-  }
-});
+// REMOVED: Side branches to avoid visual clutter
 scene.add(strapGroup);
 
 /* ══ CABLE HARNESS ══ */
@@ -790,8 +771,16 @@ const signalLines = [];
 electrodeData.forEach((d, i) => {
   // Improved pathing: curve out then wrap back
   const norm = d.pos.clone().normalize();
-  const cp1 = d.pos.clone().add(norm.multiplyScalar(0.35)); 
-  const cp2 = new THREE.Vector3(d.pos.x * 1.4, -1.8, -0.6); // Higher mid-point to hug neck
+  let cp1, cp2;
+  
+  if (d.id === 'SHP' || d.id === 'REF') {
+    // Wrap around side of neck to reach back
+    cp1 = d.pos.clone().add(new THREE.Vector3(1.0, 0, 0.2)); // Push to the side
+    cp2 = new THREE.Vector3(0.8, -1.8, -0.8); // Higher mid-point to hug side-neck
+  } else {
+    cp1 = d.pos.clone().add(norm.multiplyScalar(0.35)); 
+    cp2 = new THREE.Vector3(d.pos.x * 1.4, -1.8, -0.6); 
+  }
   
   const curve = new THREE.CubicBezierCurve3(d.pos, cp1, cp2, dspAnchor);
   
@@ -814,13 +803,7 @@ electrodeData.forEach((d, i) => {
   signalLines.push(dataPulse);
 
   cableGroup.add(cMesh);
-  // Small connector ferrule where cable meets electrode
-  const ferruleGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.04, 10);
-  const ferrule = new THREE.Mesh(ferruleGeo, shieldMat.clone());
-  ferrule.position.copy(d.pos);
-  const dir = d.pos.clone().normalize();
-  ferrule.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.negate());
-  cableGroup.add(ferrule);
+  cableGroup.add(cMesh);
 });
 
 /* ══ REALISTIC DSP UNIT — FULL PCB ASSEMBLY ══ */
@@ -1337,7 +1320,7 @@ function animate(){
 
     jumpersGroup.position.y = explodeProgress * 0.06;
     if(pcbBoard) pcbBoard.position.y = -explodeProgress * 0.04;
-    strapGroup.position.y = -explodeProgress * 0.1;
+    strapGroup.position.y = explodeProgress * 0.05; // Follow neck rise slightly
 
   } else if (explodeProgress > 0 && explodeProgress < 0.001) {
     componentsToExplode.forEach(comp => {
