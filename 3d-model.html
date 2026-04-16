@@ -734,10 +734,52 @@ addIC('LM7805', 0.08, 0.022, 0.08, 3, 0, 0.25, -0.10, 'LM7805');
 // 5. LiPo Battery (Top-Right)
 const lipoGeo = new THREE.BoxGeometry(0.28, 0.055, 0.18);
 const lipoMesh = new THREE.Mesh(lipoGeo, lipoCaseMat);
-});
+lipoMesh.position.set(0.18, PCB_H/2 + 0.0275, -0.14);
+dspGroup.add(lipoMesh);
 
-  ledMeshes.push(led);
-});
+// 6. OLED Display (Bottom-Right) displaying "HELLO"
+const oledGroup = new THREE.Group();
+const oledGlass = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.008, 0.13), new THREE.MeshStandardMaterial({color: 0x01111a, roughness: 0.1}));
+const canvas = document.createElement('canvas'); canvas.width = 120; canvas.height = 64;
+const ctx = canvas.getContext('2d'); ctx.fillStyle = '#000'; ctx.fillRect(0,0,120,64);
+ctx.fillStyle = '#00e5aa'; ctx.font = 'bold 36px "JetBrains Mono", monospace'; ctx.textAlign = 'center'; ctx.fillText('HELLO', 60, 44);
+const oledTex = new THREE.CanvasTexture(canvas);
+const oledScreen = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.11), new THREE.MeshBasicMaterial({map: oledTex}));
+oledScreen.rotation.x = -Math.PI/2; oledScreen.position.y = 0.0041;
+oledGroup.add(oledGlass, oledScreen);
+oledGroup.position.set(0.18, PCB_H/2 + 0.004, 0.14);
+dspGroup.add(oledGroup);
+
+// 7. USB-C Port (Right Edge)
+const usbMesh = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.035, 0.08), shieldMat);
+const usbHole = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.018, 0.05), new THREE.MeshBasicMaterial({color: 0x000}));
+usbMesh.add(usbHole);
+usbMesh.position.set(0.38, PCB_H/2 + 0.0175, 0.04);
+dspGroup.add(usbMesh);
+
+// 8. MicroSD Slot (Right Edge Top)
+const sdMesh = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.022, 0.14), shieldMat);
+sdMesh.position.set(0.35, PCB_H/2 + 0.011, -0.22);
+dspGroup.add(sdMesh);
+
+// 9. Status LEDs (PWR, BLE)
+const ledMeshes = [];
+const pwrLed = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.015, 0.018), new THREE.MeshBasicMaterial({color: 0x00ffaa, transparent: true}));
+const pwrLens = new THREE.Mesh(new THREE.SphereGeometry(0.010, 8, 6, 0, Math.PI*2, 0, Math.PI*0.55), pwrLed.material.clone());
+pwrLens.position.y = 0.008; pwrLed.add(pwrLens);
+pwrLed.position.set(0.30, PCB_H/2 + 0.007, 0.22);
+dspGroup.add(pwrLed); ledMeshes.push(pwrLed);
+
+const bleLed = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.015, 0.018), new THREE.MeshBasicMaterial({color: 0x4444ff, transparent: true}));
+const bleLens = new THREE.Mesh(new THREE.SphereGeometry(0.010, 8, 6, 0, Math.PI*2, 0, Math.PI*0.55), bleLed.material.clone());
+bleLens.position.y = 0.008; bleLed.add(bleLens);
+bleLed.position.set(0.35, PCB_H/2 + 0.007, 0.22);
+dspGroup.add(bleLed); ledMeshes.push(bleLed);
+
+// 10. Header Connectors (Left Edge for specific muscle leads)
+const headerBase = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.035, 0.35), new THREE.MeshStandardMaterial({color: 0x111}));
+headerBase.position.set(-0.38, PCB_H/2 + 0.0175, 0);
+dspGroup.add(headerBase);
 
 // REMOVED: Enclosure walls to keep the PCB fully visible!
 
