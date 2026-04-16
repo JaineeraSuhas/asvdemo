@@ -555,20 +555,38 @@ function buildHead(){
   const pos = geo.attributes.position;
   for(let i=0;i<pos.count;i++){
     let x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
-    y*=1.22; if(z<0) z*=0.80;
-    if(y<-1.1){ const t=Math.min((-y-1.1)/0.55,1); x*=(1-t*0.55); z*=(1-t*0.30); y*=1.08; }
-    if(y>1.1) z*=(1-(y-1.1)*0.32);
-    { const k=Math.exp(-((Math.abs(x)-1.0)**2/0.08+(y-0.05)**2/0.10+(z-0.75)**2/0.22)); x+=Math.sign(x)*k*0.15; z+=k*0.07; }
-    if(z>0.5){ const ndx=x,ndy=y-0.04,ndz=z-1.03; const nd2=ndx*ndx+ndy*ndy*0.45+ndz*ndz*0.35; const nk=Math.exp(-(nd2/0.042)); z+=nk*0.30; y-=nk*0.07; }
-    if(z>0.6){ const bx=Math.abs(x),by=y-0.40,bz=z-0.93; if(bx<0.13&&by>-0.35&&by<0.15&&bz>-0.08&&bz<0.22){ const bk=Math.exp(-(bx*bx/0.007+by*by/0.055+bz*bz/0.04)); z+=bk*0.10; } }
-    if(z>0.5){ const brx=Math.abs(x)-0.44,bry=y-0.63,brz=z-0.90; const brk=Math.exp(-(brx*brx/0.09+bry*bry/0.011+brz*brz/0.04)); z+=brk*0.10; y+=brk*0.04; }
-    if(z>0.7&&Math.abs(x)<0.25){ const lpy=y+0.50,lpz=z-1.02; if(lpy>-0.22&&lpy<0.12&&lpz>-0.12&&lpz<0.15){ const lpk=Math.exp(-(x*x/0.018+lpy*lpy/0.018+lpz*lpz/0.018)); z-=lpk*0.045; } }
-    if(z>0.7){ const ulpy=y+0.44,ulpz=z-1.01; const ulk=Math.exp(-(x*x/0.040+ulpy*ulpy/0.003+ulpz*ulpz/0.022)); z+=ulk*0.065; }
-    if(z>0.7){ const lly=y+0.63,llz=z-0.98; const llk=Math.exp(-(x*x/0.050+lly*lly/0.003+llz*llz/0.022)); z+=llk*0.072; }
-    { const tx=Math.abs(x)-1.26,ty=y-0.70,tz=z-0.28; const tk=Math.exp(-(tx*tx/0.04+ty*ty/0.06+tz*tz/0.10)); x-=Math.sign(x)*tk*0.10; }
-    if(z>0.5){ const ex=Math.abs(x)-0.43,ey=y-0.40,ez=z-1.08; const ek=Math.exp(-(ex*ex/0.024+ey*ey/0.017+ez*ez/0.014)); z-=ek*0.075; }
-    { const earx=Math.abs(x)-1.58,eary=y-0.04,earz=z+0.04; const eark=Math.exp(-(earx*earx/0.014+eary*eary/0.062+earz*earz/0.042)); x+=Math.sign(x)*eark*0.24; }
-    if(y<-0.6&&y>-1.2){ const t=(y+0.6)/-0.6; x*=(1+t*0.05); }
+    y*=1.22; if(z<0) z*=0.80; // Squish back of cranium
+    if(y<-1.1){ const t=Math.min((-y-1.1)/0.55,1); x*=(1-t*0.55); z*=(1-t*0.30); y*=1.08; } // Neck tapering
+    if(y>1.1) z*=(1-(y-1.1)*0.32); // Top tapering
+    
+    // Core structure shaping via Gaussian pulls
+    const bx=Math.abs(x);
+    // 1. Nose Bridge and Tip
+    const nK = Math.exp(-(bx*bx/0.012 + (y-0.1)**2/0.06 + (z-1.0)**2/0.08));
+    if(z>0.5){ z += nK * 0.45; y -= nK * 0.15; }
+    // 2. Deep Eye Sockets
+    const esK = Math.exp(-((bx-0.35)**2/0.03 + (y-0.38)**2/0.02 + (z-0.8)**2/0.08));
+    if(z>0.5){ z -= esK * 0.28; x -= Math.sign(x)*esK*0.06; }
+    // 3. Pronounced Cheekbones / Zygomatic Arches
+    const ckK = Math.exp(-((bx-0.58)**2/0.02 + (y-0.05)**2/0.02 + (z-0.7)**2/0.08));
+    if(z>0.2){ z += ckK * 0.25; x += Math.sign(x)*ckK*0.15; y += ckK * 0.05; }
+    // 4. Sharp Sculpted Jawline
+    const jawK = Math.exp(-((bx-0.68)**2/0.04 + (y+0.6)**2/0.04 + (z-0.4)**2/0.15));
+    x += Math.sign(x)*jawK*0.22; y -= jawK*0.05; z += jawK*0.08;
+    // 5. Stylized Ears
+    const earK = Math.exp(-((bx-1.45)**2/0.03 + (y-0.1)**2/0.06 + (z+0.1)**2/0.04));
+    x += Math.sign(x)*earK*0.38; z -= earK*0.05;
+    // 6. Brow Ridge
+    const brK = Math.exp(-(bx*bx/0.15 + (y-0.65)**2/0.01 + (z-0.8)**2/0.06));
+    if(z>0.5){ z += brK * 0.18; y -= brK * 0.05; }
+    // 7. Mental Protuberance / Chin
+    const chK = Math.exp(-(bx*bx/0.02 + (y+0.95)**2/0.04 + (z-0.85)**2/0.08));
+    if(z>0.5){ z += chK * 0.35; y -= chK * 0.12; }
+    // 8. Lips/Mouth barrel
+    const mouthK = Math.exp(-(bx*bx/0.04 + (y+0.4)**2/0.02 + (z-0.9)**2/0.05));
+    if(z>0.5){ z += mouthK * 0.15; }
+
+    pos.setXYZ(i, x, y, z);
   }
   geo.computeVertexNormals();
   geo.computeBoundingSphere();
@@ -887,6 +905,23 @@ headerBase.userData.baseY = PCB_H/2 + 0.0175;
 headerBase.position.set(-0.38, headerBase.userData.baseY, 0);
 componentsToExplode.push(headerBase);
 dspGroup.add(headerBase);
+
+// Add Global Tooltip Hover Hitboxes for non-IC modules
+function addHoverNode(parentGrp, W, H, D, px, py, pz, label, desc) {
+  const hitBox = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), new THREE.MeshBasicMaterial({visible: false}));
+  hitBox.position.set(px, py, pz);
+  hitBox.userData = { label, desc };
+  parentGrp.add(hitBox);
+  interactiveNodes.push(hitBox);
+}
+addHoverNode(espGroup, 0.28, 0.05, 0.38, 0, 0.01, 0, 'ESP32-S3 WROOM', 'Bluetooth LE 5.0 Processor');
+addHoverNode(lipoMesh, 0.32, 0.08, 0.22, 0, 0, 0, 'LiPo 500mAh', '3.7V Lithium Polymer Battery');
+addHoverNode(oledGroup, 0.26, 0.04, 0.15, 0, 0, 0, 'OLED Display', 'Main Status Screen (I2C)');
+addHoverNode(usbMesh, 0.1, 0.06, 0.1, 0, 0, 0, 'USB Type-C', 'Power and Serial Comms');
+addHoverNode(sdMesh, 0.16, 0.04, 0.18, 0, 0, 0, 'MicroSD Slot', 'On-board logging module');
+addHoverNode(pwrLedGroup, 0.04, 0.04, 0.04, 0, 0, 0, 'PWR LED', 'System Power Indicator');
+addHoverNode(bleLedGroup, 0.04, 0.04, 0.04, 0, 0, 0, 'BLE LED', 'Blutooth Connection Indicator');
+addHoverNode(headerBase, 0.06, 0.06, 0.38, 0, 0, 0, 'I/O Header', 'Primary Electrode Trunk');
 
 // Internal Multi-Color Micro-Wiring Routing
 const jumpersGroup = new THREE.Group();
