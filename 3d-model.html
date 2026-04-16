@@ -251,9 +251,9 @@ body::after {
           <button class="view-btn active" onclick="setView('default',this)">DEFAULT</button>
           <button class="view-btn" onclick="setView('front',this)">FRONT</button>
           <button class="view-btn" onclick="setView('side',this)">SIDE</button>
-          <button class="view-btn" onclick="setView('top',this)">TOP</button>
           <button class="view-btn" onclick="setView('pcb',this)">PCB</button>
           <button class="view-btn" onclick="setView('close',this)">CLOSE-UP</button>
+          <button class="view-btn" id="btnFlows" onclick="toggleFlows(this)">SIGNAL FLOWS</button>
         </div>
         <div class="view-btns" style="margin-top:8px;">
           <button class="view-btn" id="btnExploded" onclick="toggleExploded(this)">EXPLODED</button>
@@ -1017,6 +1017,50 @@ dspGroup.rotation.x = -0.55; dspGroup.rotation.y = Math.PI; // Flipped to face o
 const group = new THREE.Group();
 group.add(headMesh); group.add(neckMesh); group.add(shoulderMesh);
 group.add(electrodeGroup); group.add(cableGroup); group.add(dspGroup); group.add(strapGroup);
+
+/* ══ SIGNAL FLOWS & BRAIN ══ */
+const brainGroup = new THREE.Group();
+brainGroup.position.set(0, 0.45, -0.2); // Anatomical center approx
+group.add(brainGroup);
+
+const flowGroup = new THREE.Group();
+group.add(flowGroup);
+
+let showFlows = true;
+const flowPoints = [];
+
+electrodeData.forEach(d => {
+  // Path from electrode to brain inside the head
+  const start = d.pos.clone();
+  const end = brainGroup.position.clone();
+  const mid = start.clone().lerp(end, 0.45);
+  // Pull mid point slightly outwards or keep it direct internal
+  
+  const curve = new THREE.CatmullRomCurve3([start, mid, end]);
+  
+  // Create multiple "pulses" per electrode for a "streaming" effect
+  for(let p=0; p<4; p++){
+    const pulse = new THREE.Mesh(
+      new THREE.SphereGeometry(0.014, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0x00e5aa, transparent: true, opacity: 0.8 })
+    );
+    flowGroup.add(pulse);
+    flowPoints.push({
+      mesh: pulse,
+      curve: curve,
+      progress: Math.random(),
+      speed: 0.004 + Math.random() * 0.008,
+      intensity: 0.5 + Math.random() * 0.5
+    });
+  }
+});
+
+window.toggleFlows = function(btn) {
+  showFlows = !showFlows;
+  btn.classList.toggle('active', showFlows);
+  flowGroup.visible = showFlows;
+};
+
 group.position.y = 0.55;
 scene.add(group);
 
@@ -1234,7 +1278,6 @@ window.setView=function(view,btn){
     case'default':targetRotY=-0.28;targetRotX=0.06;targetZoom=6.8;targetPanY=0.35;compLabel.style.opacity=0;break;
     case'front':targetRotY=0;targetRotX=0;targetZoom=5.6;targetPanY=0.35;compLabel.style.opacity=0;break;
     case'side':targetRotY=Math.PI/2;targetRotX=0;targetZoom=5.6;targetPanY=0.35;compLabel.style.opacity=0;break;
-    case'top':targetRotY=0;targetRotX=-Math.PI/2.5;targetZoom=6.2;targetPanY=0.35;compLabel.style.opacity=0;break;
     case'pcb':targetRotY=Math.PI;targetRotX=0.45;targetZoom=3.2;targetPanY=-2.30;compLabel.textContent='ASV-PCB-v1 — ESP32-WROOM-32 · ADS1115 · INA128 × 3';compLabel.style.opacity=1;setTimeout(()=>compLabel.style.opacity=0,4000);break;
     case'close':targetRotY=0.12;targetRotX=0.02;targetZoom=3.4;targetPanY=0.35;compLabel.style.opacity=0;break;
   }
@@ -1353,6 +1396,25 @@ function animate(){
     sl.material.dashOffset -= 0.012 + (i%3)*0.004 + (isDiagnostic ? 0.02 : 0); 
     sl.material.color.setHex(isDiagnostic ? 0x00ffaa : 0x00e5aa);
   });
+
+  // Animate Signal flows (Muscle to Brain)
+  if(showFlows){
+    flowPoints.forEach((fp, i) => {
+      fp.progress += fp.speed * (1 + 0.5 * Math.sin(clock + i));
+      if(fp.progress > 1) fp.progress = 0;
+      const pos = fp.curve.getPointAt(fp.progress);
+      fp.mesh.position.copy(pos);
+      
+      // Cinematic scaling and fading as it reaches the "brain"
+      const s = Math.sin(fp.progress * Math.PI); // Pulse in/out
+      fp.mesh.scale.setScalar(s * 1.4 * fp.intensity);
+      fp.mesh.material.opacity = s * 0.8;
+      
+      // Shift color slightly for variety
+      if(isDiagnostic) fp.mesh.material.color.setHex(0x00ffaa);
+      else fp.mesh.material.color.setHex(0x00e5aa);
+    });
+  }
 
   // Handle Raycaster Tooltips
   hoverRaycaster.setFromCamera(mouse, camera);
