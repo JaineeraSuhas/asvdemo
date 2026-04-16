@@ -513,9 +513,9 @@ scene.environment = genEnvMap(); // Apply Studio HDRI statically
 
 // Skin
 const skinMat = new THREE.MeshPhysicalMaterial({
-  color: 0x8B5E4A, roughness: 0.50, metalness: 0.08,
-  clearcoat: 0.22, clearcoatRoughness: 0.45, reflectivity: 0.45,
-  transmission: 0.35, thickness: 1.5, ior: 1.38 // Biological Flesh Subsurface Scattering
+  color: 0x8B5E4A, roughness: 0.38, metalness: 0.05,
+  clearcoat: 0.6, clearcoatRoughness: 0.2, reflectivity: 0.8,
+  transmission: 0.72, thickness: 0.8, ior: 1.45 // Highly Translucent Glass Head
 });
 
 const wireMat = new THREE.LineBasicMaterial({ color: 0x3d2214, transparent: true, opacity: 0.15, linewidth: 1 });
@@ -1023,29 +1023,58 @@ const brainGroup = new THREE.Group();
 brainGroup.position.set(0, 0.85, 0.05); // MOVED TOP - Anatomically correct for upper cranium
 group.add(brainGroup);
 
+/* ══ ANATOMICAL BRAIN TEXTURE ══ */
+const genBrainTexture = () => {
+  const canvas = document.createElement('canvas'); canvas.width = 1024; canvas.height = 1024;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fce4de'; ctx.fillRect(0,0,1024,1024);
+  // Procedural Veins / Vasculature
+  ctx.strokeStyle = '#c0392b';
+  for(let i=0; i<80; i++){
+    ctx.lineWidth = 0.5 + Math.random();
+    ctx.globalAlpha = 0.1 + Math.random()*0.2;
+    ctx.beginPath();
+    let x = Math.random()*1024, y = Math.random()*1024;
+    ctx.moveTo(x, y);
+    for(let j=0; j<15; j++){
+      x += (Math.random()-0.5)*120; y += (Math.random()-0.5)*120;
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  // Sulci shading
+  ctx.fillStyle = '#d2b4de'; ctx.globalAlpha = 0.05;
+  for(let i=0; i<200; i++) ctx.fillRect(Math.random()*1024, Math.random()*1024, 40, 40);
+  const tex = new THREE.CanvasTexture(canvas); tex.anisotropy = 4; return tex;
+};
+
 const brainMat = new THREE.MeshPhysicalMaterial({
-  color: 0x00e5aa, roughness: 0.2, metalness: 0.1,
-  transparent: true, opacity: 0.15, transmission: 0.5, thickness: 0.5,
-  emissive: 0x004433, emissiveIntensity: 0.5,
-  clearcoat: 1.0, clearcoatRoughness: 0.1
+  color: 0xfce4de, roughness: 0.32, metalness: 0.05,
+  map: genBrainTexture(),
+  transparent: true, opacity: 0.95, 
+  transmission: 0.45, thickness: 1.2, attenuationColor: 0xffaaaa,
+  emissive: 0xaa2222, emissiveIntensity: 0.15,
+  clearcoat: 0.8, clearcoatRoughness: 0.18,
+  reflectivity: 0.5, ior: 1.45
 });
 
 function buildBrainHemisphere(isLeft){
-  const geo = new THREE.IcosahedronGeometry(0.42, 5); // SCALED UP
+  const geo = new THREE.IcosahedronGeometry(0.42, 6); // HIGHER POLY
   const pos = geo.attributes.position;
   const v = new THREE.Vector3();
   for(let i=0; i<pos.count; i++) {
     v.fromBufferAttribute(pos, i);
-    // Organic brain texture ripples - DEEPER SULCI
-    const ripple = (Math.sin(v.x*12)*Math.cos(v.y*12)*Math.sin(v.z*12)) * 0.06;
-    const gyri = (Math.sin(v.x*28)*Math.sin(v.y*28)*Math.sin(v.z*28)) * 0.015;
-    v.setLength(v.length() + ripple + gyri);
+    // Multi-octave displacement for realistic sulci/gyri
+    const noise1 = (Math.sin(v.x*10)*Math.cos(v.y*10)*Math.sin(v.z*10)) * 0.08;
+    const noise2 = (Math.sin(v.x*22)*Math.sin(v.z*22)) * 0.035;
+    const noise3 = (Math.cos(v.y*45)*Math.sin(v.z*45)) * 0.008;
+    v.setLength(v.length() + noise1 + noise2 + noise3);
     pos.setXYZ(i, v.x, v.y, v.z);
   }
   geo.computeVertexNormals();
   const mesh = new THREE.Mesh(geo, brainMat.clone());
-  mesh.position.x = isLeft ? -0.16 : 0.16; // WIDER FISSURE
-  mesh.scale.set(1.4, 1.5, 1.8); // Realistic Brain shape
+  mesh.position.x = isLeft ? -0.16 : 0.16;
+  mesh.scale.set(1.4, 1.5, 1.8); 
   return mesh;
 }
 const brainL = buildBrainHemisphere(true);
@@ -1081,6 +1110,11 @@ for(let i=0; i<60; i++){
   axonGroup.add(line);
 }
 brainGroup.add(axonGroup);
+
+// Dedicated Rim Light for Brain Realism
+const brainLight = new THREE.PointLight(0xffaaaa, 0.8, 4);
+brainLight.position.set(0, 1.2, 0.5);
+brainGroup.add(brainLight);
 
 /* ══ ORGANIC SIGNAL PIPELINES (BLOOD FLOW) ══ */
 const flowGroup = new THREE.Group();
@@ -1501,11 +1535,12 @@ function animate(){
   // Animate Organic Signal flows (Muscle to Brain)
   if(showFlows){
     // Brain breathing & pulsing
-    const brainPulse = 1.0 + Math.sin(clock * 1.8) * 0.03;
+    const brainPulse = 1.0 + Math.sin(clock * 1.8) * 0.02;
     brainGroup.scale.set(brainPulse, brainPulse, brainPulse);
     if(typeof brainL !== 'undefined') {
-      brainL.material.emissiveIntensity = 0.5 + Math.sin(clock * 3) * 0.3;
-      brainR.material.emissiveIntensity = 0.5 + Math.cos(clock * 3) * 0.3;
+      // Subsurface light pulse representing active thought
+      brainL.material.emissiveIntensity = 0.1 + Math.sin(clock * 3) * 0.2;
+      brainR.material.emissiveIntensity = 0.1 + Math.cos(clock * 3) * 0.2;
     }
 
     // Neuron synaptic flickering
