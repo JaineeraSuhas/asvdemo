@@ -1049,32 +1049,39 @@ const genBrainTexture = () => {
 };
 
 const brainMat = new THREE.MeshPhysicalMaterial({
-  color: 0xfce4de, roughness: 0.32, metalness: 0.05,
+  color: 0xfce4de, roughness: 0.62, metalness: 0.02, // BIOLOGICAL SOFT TISSUE
   map: genBrainTexture(),
-  transparent: true, opacity: 0.95, 
-  transmission: 0.45, thickness: 1.2, attenuationColor: 0xffaaaa,
-  emissive: 0xaa2222, emissiveIntensity: 0.15,
-  clearcoat: 0.8, clearcoatRoughness: 0.18,
-  reflectivity: 0.5, ior: 1.45
+  transparent: true, opacity: 0.98, // OPAQUE LOBES
+  transmission: 0.22, thickness: 1.5, attenuationColor: 0xffaaaa,
+  emissive: 0xcc4444, emissiveIntensity: 0.08,
+  clearcoat: 0.1, clearcoatRoughness: 0.5,
+  reflectivity: 0.15, ior: 1.35
 });
 
 function buildBrainHemisphere(isLeft){
-  const geo = new THREE.IcosahedronGeometry(0.42, 6); // HIGHER POLY
+  const geo = new THREE.IcosahedronGeometry(0.44, 6); // LARGER & HIGH-RES
   const pos = geo.attributes.position;
   const v = new THREE.Vector3();
   for(let i=0; i<pos.count; i++) {
     v.fromBufferAttribute(pos, i);
-    // Multi-octave displacement for realistic sulci/gyri
-    const noise1 = (Math.sin(v.x*10)*Math.cos(v.y*10)*Math.sin(v.z*10)) * 0.08;
-    const noise2 = (Math.sin(v.x*22)*Math.sin(v.z*22)) * 0.035;
-    const noise3 = (Math.cos(v.y*45)*Math.sin(v.z*45)) * 0.008;
-    v.setLength(v.length() + noise1 + noise2 + noise3);
+    // Biological "Rounded" Gyri Folds (Worm-Noise implementation)
+    const f1 = 9.2, f2 = 18.0;
+    const wave = Math.sin(v.x * f1 + Math.sin(v.z * f2)*0.5) * Math.cos(v.y * f1 + Math.cos(v.x * f2)*0.5);
+    const folds = wave * 0.062;
+    // Micro-texture gyri
+    const micro = (Math.sin(v.x*35)*Math.cos(v.y*35)*Math.sin(v.z*35)) * 0.008;
+    
+    // Anatomical shaping (Non-spherical)
+    v.z *= (1.0 + Math.max(0, v.z) * 0.18 + Math.min(0, v.z) * -0.12); // Occipital/Frontal stretch
+    v.y *= (1.0 + v.y * 0.08); // Parietal peak
+    
+    v.setLength(v.length() + folds + micro);
     pos.setXYZ(i, v.x, v.y, v.z);
   }
   geo.computeVertexNormals();
   const mesh = new THREE.Mesh(geo, brainMat.clone());
-  mesh.position.x = isLeft ? -0.16 : 0.16;
-  mesh.scale.set(1.4, 1.5, 1.8); 
+  mesh.position.x = isLeft ? -0.17 : 0.17; // MEDIAN FISSURE
+  mesh.scale.set(1.45, 1.55, 1.85); 
   return mesh;
 }
 const brainL = buildBrainHemisphere(true);
@@ -1111,9 +1118,18 @@ for(let i=0; i<60; i++){
 }
 brainGroup.add(axonGroup);
 
-// Dedicated Rim Light for Brain Realism
-const brainLight = new THREE.PointLight(0xffaaaa, 0.8, 4);
-brainLight.position.set(0, 1.2, 0.5);
+// Dedicated Internal Synaptic Lights for "Life"
+const synapticLights = [];
+[-0.2, 0.2].forEach(lx => {
+  const sLight = new THREE.PointLight(0xff6666, 0.0, 1.5);
+  sLight.position.set(lx, 0.1, 0.2);
+  brainGroup.add(sLight);
+  synapticLights.push(sLight);
+});
+
+// Rim Light for biological silhouette
+const brainLight = new THREE.PointLight(0xffaaaa, 0.6, 5);
+brainLight.position.set(0, 1.5, 0.8);
 brainGroup.add(brainLight);
 
 /* ══ ORGANIC SIGNAL PIPELINES (BLOOD FLOW) ══ */
@@ -1534,18 +1550,28 @@ function animate(){
 
   // Animate Organic Signal flows (Muscle to Brain)
   if(showFlows){
-    // Brain breathing & pulsing
-    const brainPulse = 1.0 + Math.sin(clock * 1.8) * 0.02;
-    brainGroup.scale.set(brainPulse, brainPulse, brainPulse);
+    // Biological Brain breathing & Internal Firing
+    const breathe = Math.sin(clock * 1.5);
+    const brainScale = 1.0 + breathe * 0.025;
+    brainGroup.scale.set(brainScale, 1.0 + Math.cos(clock*1.5)*0.015, brainScale);
+    
     if(typeof brainL !== 'undefined') {
-      // Subsurface light pulse representing active thought
-      brainL.material.emissiveIntensity = 0.1 + Math.sin(clock * 3) * 0.2;
-      brainR.material.emissiveIntensity = 0.1 + Math.cos(clock * 3) * 0.2;
+      // Subsurface organic perfusion
+      const p = 0.5 + 0.5 * Math.sin(clock * 2.2);
+      brainL.material.emissiveIntensity = 0.05 + p * 0.15;
+      brainR.material.emissiveIntensity = 0.05 + (1-p) * 0.15;
     }
 
-    // Neuron synaptic flickering
+    // Synaptic Flicker Lights
+    synapticLights.forEach((sl, i) => {
+      sl.intensity = 0.2 + 0.8 * Math.pow(Math.max(0, Math.sin(clock * 45 + i*10)), 5);
+      sl.position.y = 0.1 + Math.sin(clock*5 + i)*0.05;
+    });
+
+    // Neuron synaptic network flickering
     if(typeof neuronPoints !== 'undefined') {
-      neuronPoints.material.opacity = 0.3 + Math.sin(clock * 10) * 0.2;
+      neuronPoints.material.opacity = 0.2 + Math.random() * 0.4;
+      neuronPoints.scale.setScalar(1.0 + Math.sin(clock*12)*0.02);
     }
 
     flowPoints.forEach((fp, i) => {
