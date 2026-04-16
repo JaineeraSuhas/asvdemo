@@ -434,6 +434,25 @@ body::after {
 (function(){
 'use strict';
 
+/* ══ CORE MATERIALS ══ */
+const skinMat = new THREE.MeshPhysicalMaterial({ 
+  color: 0x07090d, roughness: 0.15, metalness: 0.05,
+  transparent: true, opacity: 0.82, clearcoat: 0.45, clearcoatRoughness: 0.25,
+  reflectivity: 1.0, transmission: 0.25
+});
+const packagePinMat = new THREE.MeshStandardMaterial({ color: 0xdfb021, roughness: 0.1, metalness: 0.95 });
+const shieldMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, roughness: 0.15, metalness: 0.95 });
+const chipMat = new THREE.MeshPhysicalMaterial({ color: 0x0d0d0d, roughness: 0.35, metalness: 0.12, clearcoat: 0.55, clearcoatRoughness: 0.18 });
+const agClMat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.05, metalness: 1.0, reflectivity: 1.0, clearcoat: 1.0, clearcoatRoughness: 0.02 });
+const lipoCaseMat = new THREE.MeshPhysicalMaterial({ color: 0xcccccc, roughness: 0.3, metalness: 0.6, clearcoat: 0.2, clearcoatRoughness: 0.4 });
+const enclosureMat = new THREE.MeshPhysicalMaterial({ color: 0x12151c, roughness: 0.72, metalness: 0.28, clearcoat: 0.18, clearcoatRoughness: 0.45 });
+const gelMat = new THREE.MeshPhysicalMaterial({ color: 0x3399bb, roughness: 0.12, metalness: 0.0, transparent: true, opacity: 0.52, transmission: 0.32, ior: 1.38, clearcoat: 0.85, clearcoatRoughness: 0.04 });
+const rubberMat = new THREE.MeshStandardMaterial({ color: 0x0d0d0d, roughness: 0.9, metalness: 0.0 });
+const conductorMat = new THREE.MeshPhysicalMaterial({ color: 0xdfb021, roughness: 0.15, metalness: 1.0 });
+const silkMat = new THREE.MeshBasicMaterial({ color: 0xeaeaea });
+const capBodyMat = new THREE.MeshStandardMaterial({ color: 0xa08850, roughness: 0.55, metalness: 0.1 });
+const wireMat = new THREE.LineBasicMaterial({ color: 0x3d2214, transparent: true, opacity: 0.15, linewidth: 1 });
+
 /* ══ LOADING ══ */
 const fill = document.getElementById('loadfill');
 const loadingEl = document.getElementById('loading');
@@ -578,6 +597,9 @@ const genSilkscreen = () => {
   return tex;
 };
 const pcbTex = genSilkscreen();
+const pcbMat = new THREE.MeshPhysicalMaterial({ map: pcbTex, roughnessMap: pcbTex, color: 0x0a1a0d, roughness: 0.65, metalness: 0.15, clearcoat: 0.1, clearcoatRoughness: 0.6 });
+const traceMat = new THREE.MeshPhysicalMaterial({ color: 0xdfb021, roughness: 0.18, metalness: 1.0, clearcoat: 0.4, clearcoatRoughness: 0.1 });
+const solderMaskMat = new THREE.MeshPhysicalMaterial({ color: 0x0e2e12, roughness: 0.6, metalness: 0.1, transparent: true, opacity: 0.6 });
 
 const genICLabel = (text) => {
   const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256;
@@ -608,79 +630,6 @@ const genEnvMap = () => {
   const tex = new THREE.CanvasTexture(canvas); tex.mapping = THREE.EquirectangularReflectionMapping; return tex;
 };
 scene.environment = genEnvMap(); // Apply Studio HDRI statically
-
-/* ══ MATERIALS ══ */
-
-// Skin
-// Skin - Dark Holographic (r128 compatible)
-const skinMat = new THREE.MeshPhysicalMaterial({ 
-  color: 0x07090d, roughness: 0.15, metalness: 0.05,
-  transparent: true, opacity: 0.82,
-  clearcoat: 0.45, clearcoatRoughness: 0.25,
-  reflectivity: 1.0, transmission: 0.25 // transmission is supported since r121
-});
-
-const packagePinMat = new THREE.MeshStandardMaterial({ color: 0xdfb021, roughness: 0.1, metalness: 0.95 });
-const shieldMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, roughness: 0.15, metalness: 0.95 });
-
-const wireMat = new THREE.LineBasicMaterial({ color: 0x3d2214, transparent: true, opacity: 0.15, linewidth: 1 });
-
-// ─── PCB Board: dark green FR4 with Canvas Texture
-const pcbMat = new THREE.MeshPhysicalMaterial({
-  map: pcbTex, roughnessMap: pcbTex, color: 0x0a1a0d, roughness: 0.65, metalness: 0.15,
-  clearcoat: 0.1, clearcoatRoughness: 0.6,
-});
-
-// Gold trace
-const traceMat = new THREE.MeshPhysicalMaterial({
-  color: 0xdfb021, roughness: 0.18, metalness: 1.0,
-  clearcoat: 0.4, clearcoatRoughness: 0.1,
-});
-
-// Soldermask tinted (slight green tint on top of pcb)
-const solderMaskMat = new THREE.MeshPhysicalMaterial({
-  color: 0x0e2e12, roughness: 0.6, metalness: 0.1,
-  transparent: true, opacity: 0.6,
-});
-
-// IC chip (black epoxy Base Material)
-const chipMat = new THREE.MeshPhysicalMaterial({ color: 0x0d0d0d, roughness: 0.35, metalness: 0.12, clearcoat: 0.55, clearcoatRoughness: 0.18 });
-
-// Ag/AgCl electrode disc — near chrome silver
-const agClMat = new THREE.MeshPhysicalMaterial({
-  color: 0xffffff, roughness: 0.05, metalness: 1.0,
-  reflectivity: 1.0, clearcoat: 1.0, clearcoatRoughness: 0.02,
-});
-
-// Electrode gel — blue translucent
-const gelMat = new THREE.MeshPhysicalMaterial({
-  color: 0x3399bb, roughness: 0.12, metalness: 0.0,
-  transparent: true, opacity: 0.52, transmission: 0.32, ior: 1.38,
-  clearcoat: 0.85, clearcoatRoughness: 0.04,
-});
-
-// Medical silicone rubber cable
-const rubberMat = new THREE.MeshStandardMaterial({ color: 0x0d0d0d, roughness: 0.9, metalness: 0.0 });
-
-// Conductor (gold/copper) for cable tips
-const conductorMat = new THREE.MeshPhysicalMaterial({
-  color: 0xdfb021, roughness: 0.15, metalness: 1.0,
-});
-
-// White silkscreen text placeholder
-const silkMat = new THREE.MeshBasicMaterial({ color: 0xeaeaea });
-
-// Capacitor ceramic — tan/beige
-const capBodyMat = new THREE.MeshStandardMaterial({ color: 0xa08850, roughness: 0.55, metalness: 0.1 });
-
-// LiPo battery casing
-const lipoCaseMat = new THREE.MeshPhysicalMaterial({ color: 0xcccccc, roughness: 0.3, metalness: 0.6, clearcoat: 0.2, clearcoatRoughness: 0.4 });
-
-// Enclosure walls
-const enclosureMat = new THREE.MeshPhysicalMaterial({
-  color: 0x12151c, roughness: 0.72, metalness: 0.28,
-  clearcoat: 0.18, clearcoatRoughness: 0.45,
-});
 
 /* ══ HEAD / NECK / SHOULDER ══ */
 function buildHead(){
