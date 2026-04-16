@@ -578,69 +578,54 @@ electrodeData.forEach((d, idx) => {
   elGroup.position.copy(d.pos);
   elGroup.lookAt(d.pos.clone().multiplyScalar(2));
 
-  // 1. Outer foam/adhesive ring (skin-colored backing)
-  const foamGeo = new THREE.CylinderGeometry(0.165, 0.165, 0.010, 36);
-  const foam = new THREE.Mesh(foamGeo, new THREE.MeshStandardMaterial({ color: 0xe8c898, roughness: 0.9, metalness: 0 }));
-  foam.rotation.x = Math.PI / 2;
-  elGroup.add(foam);
+  // 1. Base Housing (black plastic sleek active electrode casing)
+  const housingGeo = new THREE.CylinderGeometry(0.065, 0.055, 0.016, 32);
+  const housing = new THREE.Mesh(housingGeo, chipMat.clone());
+  housing.rotation.x = Math.PI / 2;
+  elGroup.add(housing);
 
-  // 2. Gel pad — translucent annular disc
-  const gelDiscGeo = new THREE.CylinderGeometry(0.13, 0.13, 0.008, 32);
-  const gelDisc = new THREE.Mesh(gelDiscGeo, gelMat.clone());
-  gelDisc.rotation.x = Math.PI / 2;
-  gelDisc.position.z = 0.002;
-  elGroup.add(gelDisc);
-
-  // 3. Ag/AgCl disc — polished chrome
-  const discGeo = new THREE.CylinderGeometry(0.088, 0.088, 0.020, 36);
+  // 2. Active dry conductive disc (silver chrome) protruding slightly
+  const discGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.008, 32);
   const disc = new THREE.Mesh(discGeo, agClMat.clone());
   disc.rotation.x = Math.PI / 2;
   disc.position.z = 0.008;
   elGroup.add(disc);
 
-  // 4. Concentric grooves on disc face (etched rings)
-  [0.045, 0.065, 0.080].forEach(r => {
-    const ringGeo = new THREE.TorusGeometry(r, 0.003, 6, 40);
-    const ring = new THREE.Mesh(ringGeo, new THREE.MeshStandardMaterial({ color: 0x8090a0, roughness: 0.3, metalness: 0.7 }));
-    ring.position.z = 0.020;
-    elGroup.add(ring);
-  });
-
-  // 5. Snap connector housing (black plastic dome)
-  const snapHousingGeo = new THREE.SphereGeometry(0.036, 16, 12, 0, Math.PI*2, 0, Math.PI*0.55);
+  // 3. Snap connector housing dome on top
+  const snapHousingGeo = new THREE.SphereGeometry(0.030, 16, 12, 0, Math.PI*2, 0, Math.PI*0.55);
   const snapHousing = new THREE.Mesh(snapHousingGeo, chipMat.clone());
   snapHousing.rotation.x = -Math.PI / 2;
-  snapHousing.position.z = -0.016;
+  snapHousing.position.z = -0.012;
   elGroup.add(snapHousing);
 
-  // 6. Snap connector metal ring (gold)
-  const snapRingGeo = new THREE.TorusGeometry(0.028, 0.006, 8, 24);
+  // 4. Snap connector metal ring (gold)
+  const snapRingGeo = new THREE.TorusGeometry(0.022, 0.005, 8, 24);
   const snapRing = new THREE.Mesh(snapRingGeo, packagePinMat.clone());
-  snapRing.position.z = -0.018;
+  snapRing.position.z = -0.014;
   elGroup.add(snapRing);
 
-  // 7. Cable exit stub
-  const stubGeo = new THREE.CylinderGeometry(0.014, 0.014, 0.055, 10);
+  // 5. Cable exit stub
+  const stubGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.045, 10);
   const stub = new THREE.Mesh(stubGeo, chipMat.clone());
   stub.rotation.x = Math.PI / 2;
-  stub.position.z = -0.055;
+  stub.position.z = -0.040;
   elGroup.add(stub);
 
-  // 8. Gold pin tip
-  const pinGeo = new THREE.CylinderGeometry(0.008, 0.008, 0.014, 8);
+  // 6. Gold pin tip
+  const pinGeo = new THREE.CylinderGeometry(0.006, 0.006, 0.010, 8);
   const pin = new THREE.Mesh(pinGeo, packagePinMat.clone());
   pin.rotation.x = Math.PI / 2;
-  pin.position.z = -0.086;
+  pin.position.z = -0.065;
   elGroup.add(pin);
 
-  // 9. Status LED
-  const ledGeo = new THREE.SphereGeometry(0.009, 8, 8);
+  // 7. Status LED embedded in housing
+  const ledGeo = new THREE.SphereGeometry(0.007, 8, 8);
   const led = new THREE.Mesh(ledGeo, new THREE.MeshBasicMaterial({ color: 0x00e5aa, transparent: true, opacity: 0.9 }));
-  led.position.set(0.055, 0.055, 0.018);
-  disc.add(led);
+  led.position.set(0.040, 0.040, 0.005);
+  housing.add(led);
 
   electrodeGroup.add(elGroup);
-  electrodeObjects.push({ mesh: elGroup, data: d, disc, gelDisc, led });
+  electrodeObjects.push({ mesh: elGroup, data: d, disc, led });
 });
 
 /* ══ CABLE HARNESS ══ */
@@ -1080,23 +1065,30 @@ function drawAnnotations(){
     const worldPos = new THREE.Vector3(); mesh.getWorldPosition(worldPos);
     const scr = projectToScreen(worldPos);
     if(scr.z>1||scr.x<-80||scr.x>emgCanvas.width+80) return;
-    const isLeft = data.id.endsWith('L');
-    const offsetX = isLeft ? 78 : -78;
+    // Align dynamically based on screen half
+    const isRightSide = scr.x > emgCanvas.width / 2;
+    const offsetX = isRightSide ? 90 : -90;
     const lx = scr.x + offsetX;
+    
+    // Spread labels vertically so they don't overlap heavily
+    const spreadY = (idx % 3 - 1) * 44; 
+    const ly = scr.y + spreadY;
+
     const isActive = idx === activeElectrode;
     const col = isActive ? 'rgba(0,229,170,0.65)' : 'rgba(255,255,255,0.12)';
-    emgCtx.beginPath(); emgCtx.moveTo(scr.x,scr.y); emgCtx.lineTo(scr.x+offsetX*0.5,scr.y); emgCtx.lineTo(lx,scr.y);
+    
+    emgCtx.beginPath(); emgCtx.moveTo(scr.x,scr.y); emgCtx.lineTo(scr.x+offsetX*0.4, ly); emgCtx.lineTo(lx, ly);
     emgCtx.strokeStyle=col; emgCtx.lineWidth=isActive?1.2:0.7; emgCtx.stroke();
     emgCtx.beginPath(); emgCtx.arc(scr.x,scr.y,isActive?5:3,0,Math.PI*2);
     emgCtx.fillStyle=isActive?'rgba(0,229,170,0.9)':'rgba(255,255,255,0.42)'; emgCtx.fill();
     emgCtx.font='8px "JetBrains Mono",monospace';
     emgCtx.fillStyle=isActive?'rgba(0,229,170,0.85)':'rgba(255,255,255,0.28)';
-    emgCtx.textAlign=isLeft?'left':'right';
-    emgCtx.fillText(data.label, lx+(isLeft?4:-4), scr.y-5);
+    emgCtx.textAlign=isRightSide?'left':'right';
+    emgCtx.fillText(data.label, lx+(isRightSide?4:-4), ly-5);
     emgCtx.fillStyle='rgba(255,255,255,0.14)';
-    emgCtx.fillText(data.channel+' · '+data.impedance, lx+(isLeft?4:-4), scr.y+8);
+    emgCtx.fillText(data.channel+' · '+data.impedance, lx+(isRightSide?4:-4), ly+8);
     // Mini waveform preview
-    const sqLen=32, sqX=isLeft?lx+4:lx-sqLen-4;
+    const sqLen=32, sqX=isRightSide?lx+4:lx-sqLen-4;
     emgCtx.beginPath();
     for(let sx=0;sx<=sqLen;sx++){
       const t=sx/sqLen, amp=3.2*Math.sin(t*Math.PI);
