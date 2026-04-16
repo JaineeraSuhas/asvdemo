@@ -661,304 +661,88 @@ electrodeData.forEach((d, i) => {
 /* ══ REALISTIC DSP UNIT — FULL PCB ASSEMBLY ══ */
 const dspGroup = new THREE.Group();
 
-// ── PCB Board (FR4) — slightly larger, real proportions
-const PCB_W = 1.30, PCB_H = 0.018, PCB_D = 0.90;
+// ── PCB Board (FR4) matched to index.html SVG ──
+const PCB_W = 0.82, PCB_H = 0.016, PCB_D = 0.55;
 const pcbGeo = new THREE.BoxGeometry(PCB_W, PCB_H, PCB_D);
-const pcbBoard = new THREE.Mesh(pcbGeo, pcbMat);
+const pcbBoard = new THREE.Mesh(pcbGeo, new THREE.MeshStandardMaterial({ color: 0x071e11, roughness: 0.65, metalness: 0.2 }));
 pcbBoard.receiveShadow = true; pcbBoard.castShadow = true;
 dspGroup.add(pcbBoard);
 
-// PCB edge lines
-const pcbEdges = new THREE.LineSegments(new THREE.EdgesGeometry(pcbGeo), new THREE.LineBasicMaterial({ color: 0x1a4a1a, transparent: true, opacity: 0.6 }));
-dspGroup.add(pcbEdges);
-
-// Soldermask overlay (very thin green tinted plane on top)
-const smGeo = new THREE.PlaneGeometry(PCB_W - 0.01, PCB_D - 0.01);
-const smMesh = new THREE.Mesh(smGeo, solderMaskMat);
-smMesh.rotation.x = -Math.PI / 2; smMesh.position.y = PCB_H / 2 + 0.001;
-dspGroup.add(smMesh);
-
-// ── Helper: add IC with pins on all 4 sides ──
-function addIC(name, W, H, D, pins, posX, posZ, label){
-  const icGroup = new THREE.Group();
-  // Body
-  const bodyGeo = new THREE.BoxGeometry(W, H, D);
-  const body = new THREE.Mesh(bodyGeo, chipMat.clone());
-  body.castShadow = true;
-  icGroup.add(body);
-  // Top marking dot (pin-1 indicator)
-  const dotGeo = new THREE.SphereGeometry(0.012, 6, 6);
-  const dot = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 }));
-  dot.position.set(-W*0.35, H/2+0.001, -D*0.35);
-  icGroup.add(dot);
-  // Pins: left & right sides (SOIC-8 style)
-  const pinsPerSide = Math.floor(pins / 2);
-  const pinSpacing = D / (pinsPerSide + 1);
-  [-1, 1].forEach(side => {
-    for(let p = 0; p < pinsPerSide; p++){
-      const pinGeo = new THREE.BoxGeometry(0.055, 0.007, 0.016);
-      const pin = new THREE.Mesh(pinGeo, packagePinMat.clone());
-      pin.position.set(side * (W/2 + 0.028), -H/2, -D/2 + pinSpacing*(p+1));
-      icGroup.add(pin);
-    }
+// PCB corner mounting holes (visual only)
+[-PCB_W/2+0.04, PCB_W/2-0.04].forEach(hx => {
+  [-PCB_D/2+0.04, PCB_D/2-0.04].forEach(hz => {
+    const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, PCB_H*1.1, 16), new THREE.MeshBasicMaterial({color: 0x000000}));
+    hole.position.set(hx, 0, hz);
+    dspGroup.add(hole);
   });
-  // Silkscreen label placeholder (tiny thin plane)
-  const lblGeo = new THREE.PlaneGeometry(W * 0.62, D * 0.38);
-  const lbl = new THREE.Mesh(lblGeo, silkMat);
-  lbl.rotation.x = -Math.PI/2; lbl.position.y = H/2 + 0.002;
-  icGroup.add(lbl);
+});
 
+// ── Helper: add basic IC ──
+function addIC(name, W, H, D, pinsX, pinsZ, posX, posZ, label){
+  const icGroup = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), chipMat.clone());
+  body.castShadow = true; icGroup.add(body);
+  const dot = new THREE.Mesh(new THREE.SphereGeometry(0.008, 6, 6), new THREE.MeshBasicMaterial({ color: 0x999999 }));
+  dot.position.set(-W*0.35, H/2, -D*0.35); icGroup.add(dot);
+  
+  if (pinsX > 0) {
+    const spX = D / (pinsX + 1);
+    [-1, 1].forEach(side => {
+      for(let p = 0; p < pinsX; p++){
+        const pin = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.005, 0.012), packagePinMat.clone());
+        pin.position.set(side * (W/2 + 0.012), -H/2+0.002, -D/2 + spX*(p+1));
+        icGroup.add(pin);
+      }
+    });
+  }
+  if (pinsZ > 0) {
+    const spZ = W / (pinsZ + 1);
+    [-1, 1].forEach(side => {
+      for(let p = 0; p < pinsZ; p++){
+        const pin = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.005, 0.025), packagePinMat.clone());
+        pin.position.set(-W/2 + spZ*(p+1), -H/2+0.002, side * (D/2 + 0.012));
+        icGroup.add(pin);
+      }
+    });
+  }
+  
   icGroup.position.set(posX, PCB_H/2 + H/2, posZ);
-  icGroup.userData.label = label;
   dspGroup.add(icGroup);
-  return icGroup;
 }
 
-// ── INA128 × 3 (instrumentation amplifiers) — SOIC-8 package 5mm × 4mm
-addIC('INA128-1', 0.28, 0.038, 0.20, 8, -0.38, -0.25, 'INA128 AMP-1');
-addIC('INA128-2', 0.28, 0.038, 0.20, 8, -0.38,  0.00, 'INA128 AMP-2');
-addIC('INA128-3', 0.28, 0.038, 0.20, 8, -0.38,  0.25, 'INA128 AMP-3');
-
-// ── ADS1299 ADC (24-bit, 8-channel) — TQFP-64 style larger square
-const adsGroup = addIC('ADS1299', 0.34, 0.046, 0.34, 16, 0.10, 0.10, 'ADS1299 24-bit ADC');
-// Extra pins on top & bottom (TQFP has pins on all 4 sides)
-const adsBody = adsGroup.children[0];
-[0.08, -0.08].forEach(ox => {
-  for(let p = 0; p < 6; p++){
-    const pinGeo = new THREE.BoxGeometry(0.016, 0.007, 0.048);
-    const pin = new THREE.Mesh(pinGeo, packagePinMat.clone());
-    pin.position.set(ox + (p-2.5)*0.048, -0.023-0.005, 0.34/2 + 0.024);
-    adsGroup.add(pin);
-    const pin2 = pin.clone();
-    pin2.position.z = -0.34/2 - 0.024;
-    adsGroup.add(pin2);
-  }
-});
-
-// ── ESP32-WROOM-32 Module ── (castle antenna, metal can)
+// 1. ESP32-WROOM-32 (Silver Can)
 const espGroup = new THREE.Group();
-// Main module body (metal-shielded can)
-const espCanGeo = new THREE.BoxGeometry(0.54, 0.065, 0.36);
-const espCan = new THREE.Mesh(espCanGeo, shieldMat);
-espCan.castShadow = true;
+const espCan = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.035, 0.35), shieldMat);
 espGroup.add(espCan);
-// Antenna cutout region (slightly recessed end)
-const antCutGeo = new THREE.BoxGeometry(0.06, 0.065, 0.36);
-const antCut = new THREE.Mesh(antCutGeo, new THREE.MeshStandardMaterial({ color: 0x1a2228, roughness: 0.8, metalness: 0.1 }));
-antCut.position.x = 0.54/2 - 0.03;
-espGroup.add(antCut);
-// PCB antenna trace (zig-zag, gold)
-const antTracePositions = [
-  [0.26,0.033,-0.14],[0.26,0.033,-0.06],[0.30,0.033,-0.06],[0.30,0.033,0.02],
-  [0.26,0.033,0.02],[0.26,0.033,0.10],[0.30,0.033,0.10],
-];
-antTracePositions.forEach((p,i) => {
-  if(i < antTracePositions.length - 1){
-    const a = new THREE.Vector3(...antTracePositions[i]);
-    const b = new THREE.Vector3(...antTracePositions[i+1]);
-    const len = a.distanceTo(b);
-    const trGeo = new THREE.BoxGeometry(Math.abs(a.x-b.x) || 0.008, 0.004, Math.abs(a.z-b.z) || 0.008);
-    const tr = new THREE.Mesh(trGeo, traceMat.clone());
-    tr.position.set((a.x+b.x)/2, (a.y+b.y)/2 + 0.001, (a.z+b.z)/2);
-    espGroup.add(tr);
-  }
-});
-// Label on module
-const espLblGeo = new THREE.PlaneGeometry(0.38, 0.24);
-const espLbl = new THREE.Mesh(espLblGeo, new THREE.MeshBasicMaterial({ color: 0x222e26, transparent: true, opacity: 0.9 }));
-espLbl.rotation.x = -Math.PI/2; espLbl.position.set(-0.04, 0.033, 0);
-espGroup.add(espLbl);
-// Castle ground pads on bottom edge
-for(let p = 0; p < 18; p++){
-  const padGeo = new THREE.BoxGeometry(0.016, 0.008, 0.018);
-  const pad = new THREE.Mesh(padGeo, packagePinMat.clone());
-  pad.position.set(-0.54/2 + 0.04 + p * 0.026, -0.065/2 - 0.004, 0.36/2 - 0.009);
-  espGroup.add(pad);
-  const pad2 = pad.clone();
-  pad2.position.z = -0.36/2 + 0.009;
-  espGroup.add(pad2);
-}
-espGroup.userData.label = 'ESP32-WROOM-32';
-espGroup.position.set(-0.06, PCB_H/2 + 0.065/2, -0.14);
+const antTrace = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.035, 0.35), new THREE.MeshStandardMaterial({color: 0x111612, roughness: 0.9}));
+antTrace.position.x = -0.15; espGroup.add(antTrace);
+const espLbl = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.22), new THREE.MeshBasicMaterial({color: 0x222222}));
+espLbl.rotation.x = -Math.PI/2; espLbl.position.set(0.03, 0.018, 0); espGroup.add(espLbl);
+espGroup.position.set(-0.25, PCB_H/2 + 0.0175, 0.02);
 dspGroup.add(espGroup);
 
-// ── USB-C Connector (full detail) ──
-const usbGroup = new THREE.Group();
-// Shell
-const usbShellGeo = new THREE.BoxGeometry(0.094, 0.048, 0.062);
-const usbShell = new THREE.Mesh(usbShellGeo, shieldMat.clone());
-usbGroup.add(usbShell);
-// Cavity (darker inside)
-const usbCavGeo = new THREE.BoxGeometry(0.070, 0.034, 0.014);
-const usbCav = new THREE.Mesh(usbCavGeo, new THREE.MeshBasicMaterial({ color: 0x060606 }));
-usbCav.position.z = 0.062/2 - 0.004;
-usbGroup.add(usbCav);
-// Mounting pins
-[-0.036, 0.036].forEach(ox => {
-  const mpGeo = new THREE.CylinderGeometry(0.008, 0.008, 0.018, 6);
-  const mp = new THREE.Mesh(mpGeo, packagePinMat.clone());
-  mp.position.set(ox, -0.048/2 - 0.009, 0);
-  usbGroup.add(mp);
-});
-// Signal pads
-for(let p = -2; p <= 2; p++){
-  const sigPad = new THREE.Mesh(new THREE.BoxGeometry(0.009, 0.004, 0.026), packagePinMat.clone());
-  sigPad.position.set(p * 0.012, -0.024, 0.038);
-  usbGroup.add(sigPad);
-}
-usbGroup.userData.label = 'USB-C Port';
-usbGroup.position.set(0.62, PCB_H/2 + 0.048/2, 0.32);
-dspGroup.add(usbGroup);
+// 2. ADS1115 (Center-Left)
+addIC('ADS1115', 0.08, 0.020, 0.08, 4, 4, -0.05, -0.10, 'ADS1115');
 
-// ── LiPo Battery (flat pouch cell) ──
-const lipoGroup = new THREE.Group();
-const lipoGeo = new THREE.BoxGeometry(0.60, 0.06, 0.42);
+// 3. INA128 (Center-Left)
+addIC('INA128', 0.07, 0.022, 0.09, 4, 0, -0.05, +0.10, 'INA128');
+
+// 4. TP4056 & LM7805 (Right-Center)
+addIC('TP4056', 0.06, 0.015, 0.07, 4, 0, 0.25, 0.00, 'TP4056');
+addIC('LM7805', 0.08, 0.022, 0.08, 3, 0, 0.25, -0.10, 'LM7805');
+
+// 5. LiPo Battery (Top-Right)
+const lipoGeo = new THREE.BoxGeometry(0.28, 0.055, 0.18);
 const lipoMesh = new THREE.Mesh(lipoGeo, lipoCaseMat);
-lipoMesh.castShadow = true; lipoMesh.receiveShadow = true;
-lipoGroup.add(lipoMesh);
-// Capacity label
-const lipoLblGeo = new THREE.PlaneGeometry(0.40, 0.25);
-const lipoLbl = new THREE.Mesh(lipoLblGeo, new THREE.MeshBasicMaterial({ color: 0x2a2a3a, transparent: true, opacity: 0.9 }));
-lipoLbl.rotation.x = -Math.PI/2; lipoLbl.position.y = 0.031;
-lipoGroup.add(lipoLbl);
-// Connector JST-2 (tiny 2-pin)
-const jstGeo = new THREE.BoxGeometry(0.055, 0.035, 0.032);
-const jst = new THREE.Mesh(jstGeo, new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.7 }));
-jst.position.set(-0.60/2 - 0.012, 0, 0);
-lipoGroup.add(jst);
-[0.008, -0.008].forEach(ox => {
-  const jp = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.030, 6), packagePinMat.clone());
-  jp.position.set(ox - 0.60/2 - 0.012, 0, 0); jp.rotation.z = Math.PI/2;
-  lipoGroup.add(jp);
-});
-// Positive terminal mark
-const posMarkGeo = new THREE.PlaneGeometry(0.018, 0.018);
-const posMark = new THREE.Mesh(posMarkGeo, new THREE.MeshBasicMaterial({ color: 0xff3322, transparent: true, opacity: 0.8 }));
-posMark.rotation.x = -Math.PI/2; posMark.position.set(0.60/2 - 0.03, 0.031, 0.42/2 - 0.03);
-lipoGroup.add(posMark);
-lipoGroup.userData.label = 'LiPo 500mAh Battery';
-lipoGroup.position.set(0.30, PCB_H/2 + 0.06/2, -0.04);
-dspGroup.add(lipoGroup);
-
-// ── SMD Capacitors (0805 ceramic) ──
-const capPositions = [
-  [-0.14, -0.28], [-0.14, 0.28], [0.08, -0.30], [0.08, 0.30],
-  [0.42, -0.18], [0.42, 0.18], [-0.52, 0.10], [-0.52, -0.10],
-];
-capPositions.forEach(([px, pz]) => {
-  const capGeo = new THREE.BoxGeometry(0.038, 0.022, 0.022);
-  const cap = new THREE.Mesh(capGeo, capBodyMat.clone());
-  cap.position.set(px, PCB_H/2 + 0.011, pz);
-  // End metallizations
-  [-0.019, 0.019].forEach(ox => {
-    const end = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.022, 0.022), packagePinMat.clone());
-    end.position.set(ox, 0, 0);
-    cap.add(end);
-  });
-  dspGroup.add(cap);
 });
 
-// ── SMD Resistors (0402) ──
-const resPositions = [
-  [0.30, -0.32],[0.30, -0.22],[0.30, 0.22],[0.30, 0.32],
-  [-0.22, -0.32],[-0.22, 0.32],[0.50, -0.10],[0.50, 0.10],
-  [-0.52, 0.26],[-0.52, -0.26],
-];
-resPositions.forEach(([px, pz]) => {
-  const resGeo = new THREE.BoxGeometry(0.030, 0.016, 0.016);
-  const res = new THREE.Mesh(resGeo, new THREE.MeshStandardMaterial({ color: 0x1a1208, roughness: 0.75 }));
-  res.position.set(px, PCB_H/2 + 0.008, pz);
-  [-0.015, 0.015].forEach(ox => {
-    const end = new THREE.Mesh(new THREE.BoxGeometry(0.007, 0.016, 0.016), packagePinMat.clone());
-    end.position.set(ox, 0, 0);
-    res.add(end);
-  });
-  dspGroup.add(res);
-});
-
-// ── Electrolytic Capacitor (larger, cylindrical) ──
-const eCapGeo = new THREE.CylinderGeometry(0.036, 0.036, 0.095, 16);
-const eCap = new THREE.Mesh(eCapGeo, new THREE.MeshStandardMaterial({ color: 0x1a1a28, roughness: 0.55, metalness: 0.2 }));
-eCap.position.set(0.52, PCB_H/2 + 0.048, 0.05);
-// Top vent cross
-const ventA = new THREE.Mesh(new THREE.BoxGeometry(0.060, 0.005, 0.006), new THREE.MeshBasicMaterial({ color: 0x3a3a4a }));
-ventA.position.y = 0.048; eCap.add(ventA);
-const ventB = ventA.clone(); ventB.rotation.y = Math.PI/2; eCap.add(ventB);
-// Polarity stripe
-const stripGeo = new THREE.CylinderGeometry(0.0365, 0.0365, 0.020, 16, 1, true, 3.1, 0.9);
-const strip = new THREE.Mesh(stripGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6, side: THREE.BackSide }));
-strip.position.y = -0.032; eCap.add(strip);
-dspGroup.add(eCap);
-
-// ── Gold PCB Traces ──
-const traces = [
-  { x:-0.27, z:-0.10, w:0.20, d:0.007 }, { x:-0.27, z: 0.00, w:0.20, d:0.007 }, { x:-0.27, z: 0.10, w:0.20, d:0.007 },
-  { x:-0.03, z:-0.18, w:0.26, d:0.007 }, { x:-0.03, z: 0.18, w:0.26, d:0.007 },
-  { x: 0.28, z:-0.08, w:0.18, d:0.005 }, { x: 0.28, z: 0.08, w:0.18, d:0.005 },
-  { x:-0.44, z: 0.22, w:0.14, d:0.005 }, { x:-0.44, z:-0.22, w:0.14, d:0.005 },
-];
-traces.forEach(t => {
-  const trGeo = new THREE.BoxGeometry(t.w, 0.003, t.d);
-  const tr = new THREE.Mesh(trGeo, traceMat.clone());
-  tr.position.set(t.x, PCB_H/2 + 0.0015, t.z);
-  dspGroup.add(tr);
-});
-
-// ── Connector header (6-pin 2.54mm pitch) for electrode cables ──
-const headerGroup = new THREE.Group();
-const headerBodyGeo = new THREE.BoxGeometry(0.026 * 7, 0.032, 0.022);
-headerGroup.add(new THREE.Mesh(headerBodyGeo, new THREE.MeshStandardMaterial({ color: 0x1a0808, roughness: 0.85 })));
-for(let p = 0; p < 6; p++){
-  const pinGeo2 = new THREE.BoxGeometry(0.012, 0.045, 0.012);
-  const pin = new THREE.Mesh(pinGeo2, packagePinMat.clone());
-  pin.position.set(-0.026*2.5 + p*0.026, -0.032, 0);
-  headerGroup.add(pin);
-}
-headerGroup.position.set(-0.44, PCB_H/2 + 0.016, 0.40);
-dspGroup.add(headerGroup);
-
-// ── Crystal oscillator (small 2-pin rectangular) ──
-const xtalGeo = new THREE.BoxGeometry(0.050, 0.028, 0.030);
-const xtal = new THREE.Mesh(xtalGeo, new THREE.MeshPhysicalMaterial({ color: 0xc8c8a8, roughness: 0.2, metalness: 0.8, clearcoat: 0.4 }));
-xtal.position.set(-0.04, PCB_H/2 + 0.014, 0.30);
-[-0.025, 0.025].forEach(ox => {
-  const xpin = new THREE.Mesh(new THREE.BoxGeometry(0.010, 0.028, 0.012), packagePinMat.clone());
-  xpin.position.x = ox; xtal.add(xpin);
-});
-dspGroup.add(xtal);
-
-// ── RGB Status LEDs ──
-const ledColors = [0xff2200, 0x22ff44, 0x0088ff];
-const ledMeshes = [];
-ledColors.forEach((col, i) => {
-  const ledGeo = new THREE.BoxGeometry(0.022, 0.020, 0.022);
-  const led = new THREE.Mesh(ledGeo, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.88 }));
-  led.position.set(0.56, PCB_H/2 + 0.010, -0.24 + i * 0.074);
-  led.userData.ledIdx = i;
-  // Lens dome
-  const lensGeo = new THREE.SphereGeometry(0.012, 8, 6, 0, Math.PI*2, 0, Math.PI*0.55);
-  const lens = new THREE.Mesh(lensGeo, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.7 }));
-  lens.position.y = 0.014;
-  led.add(lens);
-  dspGroup.add(led);
   ledMeshes.push(led);
 });
 
-// ── Enclosure walls ──
-[
-  { pos:[0,-0.075,0],  geo: new THREE.BoxGeometry(PCB_W+0.06, 0.10, PCB_D+0.06) },   // bottom
-  { pos:[0, 0.04, -(PCB_D/2+0.032)], geo: new THREE.BoxGeometry(PCB_W+0.06, 0.12, 0.014) }, // back
-  { pos:[0, 0.04,  (PCB_D/2+0.032)], geo: new THREE.BoxGeometry(PCB_W-0.10, 0.12, 0.014) }, // front (shorter, port cutout)
-  { pos:[-(PCB_W/2+0.032), 0.04, 0], geo: new THREE.BoxGeometry(0.014, 0.12, PCB_D+0.06) }, // left
-  { pos:[ (PCB_W/2+0.032), 0.04, 0], geo: new THREE.BoxGeometry(0.014, 0.12, PCB_D+0.06) }, // right
-].forEach(w => {
-  const m = new THREE.Mesh(w.geo, enclosureMat.clone());
-  m.position.set(...w.pos); m.castShadow=true; m.receiveShadow=true;
-  dspGroup.add(m);
-});
+// REMOVED: Enclosure walls to keep the PCB fully visible!
 
 dspGroup.position.set(0, -2.85, 1.48); // Below the neck on the chest
-dspGroup.rotation.x = -0.35; dspGroup.rotation.y = 0; // Angled slightly to rest on the chest
+dspGroup.rotation.x = -0.55; dspGroup.rotation.y = 0; // Angled heavily forward to show components perfectly from front
 
 /* ══ GROUP EVERYTHING ══ */
 const group = new THREE.Group();
@@ -1059,45 +843,62 @@ function projectToScreen(worldPos){
 }
 
 function drawAnnotations(){
-  emgCtx.clearRect(0,0,emgCanvas.width,emgCanvas.height);
+  emgCtx.clearRect(0, 0, emgCanvas.width, emgCanvas.height);
   if(!showAnnotations) return;
+
+  const leftNodes = [], rightNodes = [];
   electrodeObjects.forEach(({mesh, data}, idx) => {
     const worldPos = new THREE.Vector3(); mesh.getWorldPosition(worldPos);
     const scr = projectToScreen(worldPos);
-    if(scr.z>1||scr.x<-80||scr.x>emgCanvas.width+80) return;
-    // Align dynamically based on screen half
-    const isRightSide = scr.x > emgCanvas.width / 2;
-    const offsetX = isRightSide ? 90 : -90;
-    const lx = scr.x + offsetX;
-    
-    // Spread labels vertically so they don't overlap heavily
-    const spreadY = (idx % 3 - 1) * 44; 
-    const ly = scr.y + spreadY;
-
-    const isActive = idx === activeElectrode;
-    const col = isActive ? 'rgba(0,229,170,0.65)' : 'rgba(255,255,255,0.12)';
-    
-    emgCtx.beginPath(); emgCtx.moveTo(scr.x,scr.y); emgCtx.lineTo(scr.x+offsetX*0.4, ly); emgCtx.lineTo(lx, ly);
-    emgCtx.strokeStyle=col; emgCtx.lineWidth=isActive?1.2:0.7; emgCtx.stroke();
-    emgCtx.beginPath(); emgCtx.arc(scr.x,scr.y,isActive?5:3,0,Math.PI*2);
-    emgCtx.fillStyle=isActive?'rgba(0,229,170,0.9)':'rgba(255,255,255,0.42)'; emgCtx.fill();
-    emgCtx.font='8px "JetBrains Mono",monospace';
-    emgCtx.fillStyle=isActive?'rgba(0,229,170,0.85)':'rgba(255,255,255,0.28)';
-    emgCtx.textAlign=isRightSide?'left':'right';
-    emgCtx.fillText(data.label, lx+(isRightSide?4:-4), ly-5);
-    emgCtx.fillStyle='rgba(255,255,255,0.14)';
-    emgCtx.fillText(data.channel+' · '+data.impedance, lx+(isRightSide?4:-4), ly+8);
-    // Mini waveform preview
-    const sqLen=32, sqX=isRightSide?lx+4:lx-sqLen-4;
-    emgCtx.beginPath();
-    for(let sx=0;sx<=sqLen;sx++){
-      const t=sx/sqLen, amp=3.2*Math.sin(t*Math.PI);
-      const y=scr.y+18+Math.sin(t*Math.PI*6+Date.now()*0.002+idx)*amp;
-      if(sx===0) emgCtx.moveTo(sqX+sx,y); else emgCtx.lineTo(sqX+sx,y);
-    }
-    emgCtx.strokeStyle=isActive?'rgba(0,229,170,0.3)':'rgba(255,255,255,0.13)';
-    emgCtx.lineWidth=0.9; emgCtx.stroke();
+    if(scr.z > 1 || scr.x < -80 || scr.x > emgCanvas.width + 80) return;
+    if(scr.x < emgCanvas.width / 2) leftNodes.push({ scr, data, idx });
+    else rightNodes.push({ scr, data, idx });
   });
+
+  const drawNodeSet = (nodes, isRightSide) => {
+    // Sort by physical screen Y to avoid crossed wires
+    nodes.sort((a, b) => a.scr.y - b.scr.y);
+
+    // Give each node a strictly defined vertical slot to eliminate overlap
+    const startY = emgCanvas.height / 2 - ((nodes.length - 1) * 60) / 2;
+    
+    nodes.forEach((node, i) => {
+      const offsetX = isRightSide ? 100 : -100;
+      const lx = node.scr.x + offsetX;
+      const ly = startY + (i * 60);
+
+      const isActive = node.idx === activeElectrode;
+      const col = isActive ? 'rgba(0,229,170,0.65)' : 'rgba(255,255,255,0.12)';
+      
+      emgCtx.beginPath(); emgCtx.moveTo(node.scr.x, node.scr.y); emgCtx.lineTo(node.scr.x + offsetX * 0.4, ly); emgCtx.lineTo(lx, ly);
+      emgCtx.strokeStyle = col; emgCtx.lineWidth = isActive ? 1.2 : 0.7; emgCtx.stroke();
+      
+      emgCtx.beginPath(); emgCtx.arc(node.scr.x, node.scr.y, isActive ? 5 : 3, 0, Math.PI * 2);
+      emgCtx.fillStyle = isActive ? 'rgba(0,229,170,0.9)' : 'rgba(255,255,255,0.42)'; emgCtx.fill();
+      
+      emgCtx.font = '8px "JetBrains Mono",monospace';
+      emgCtx.fillStyle = isActive ? 'rgba(0,229,170,0.85)' : 'rgba(255,255,255,0.28)';
+      emgCtx.textAlign = isRightSide ? 'left' : 'right';
+      emgCtx.fillText(node.data.label, lx + (isRightSide ? 4 : -4), ly - 5);
+      
+      emgCtx.fillStyle = 'rgba(255,255,255,0.14)';
+      emgCtx.fillText(node.data.channel + ' · ' + node.data.impedance, lx + (isRightSide ? 4 : -4), ly + 8);
+      
+      // Mini waveform preview
+      const sqLen = 32, sqX = isRightSide ? lx + 4 : lx - sqLen - 4;
+      emgCtx.beginPath();
+      for(let sx = 0; sx <= sqLen; sx++){
+        const t = sx / sqLen, amp = 3.2 * Math.sin(t * Math.PI);
+        const y = ly + 18 + Math.sin(t * Math.PI * 6 + Date.now() * 0.002 + node.idx) * amp;
+        if(sx === 0) emgCtx.moveTo(sqX + sx, y); else emgCtx.lineTo(sqX + sx, y);
+      }
+      emgCtx.strokeStyle = isActive ? 'rgba(0,229,170,0.3)' : 'rgba(255,255,255,0.13)';
+      emgCtx.lineWidth = 0.9; emgCtx.stroke();
+    });
+  };
+
+  drawNodeSet(leftNodes, false);
+  drawNodeSet(rightNodes, true);
 }
 
 /* ══ INTERACTION ══ */
