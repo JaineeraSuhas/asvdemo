@@ -1,0 +1,1257 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="description" content="ASV â€” A Silent Voice. 3D Interactive EMG Neural Interface Render. Surface mesh, electrode placement, DSP hardware.">
+<title>ASV â€” 3D Neural Interface Render</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,300;1,8..60,400&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   DESIGN TOKENS â€” matches index.html
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+:root {
+  --bg: #0a0a0a;
+  --bg2: #111111;
+  --bg3: #181818;
+  --border: rgba(255,255,255,0.12);
+  --border-strong: rgba(255,255,255,0.25);
+  --accent: #ffffff;
+  --text: #ffffff;
+  --dim: rgba(255,255,255,0.45);
+  --dim2: rgba(255,255,255,0.25);
+  --dim3: rgba(255,255,255,0.12);
+  --mono: 'JetBrains Mono', monospace;
+  --serif: 'Playfair Display', Georgia, serif;
+  --body: 'Source Serif 4', Georgia, serif;
+}
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   RESET & BASE
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { background: var(--bg); }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(255,255,255,0.008) 1px, rgba(255,255,255,0.008) 2px);
+  background-size: 100% 4px;
+  pointer-events: none;
+}
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   LOADING
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+#loading {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 200; transition: opacity 0.9s ease;
+}
+#loading.hidden { opacity: 0; pointer-events: none; }
+#loadlogo { font-family: var(--serif); font-size: 48px; font-weight: 800; color: rgba(255,255,255,0.8); font-style: italic; letter-spacing: -0.03em; }
+#loadbar { width: 220px; height: 1px; background: rgba(255,255,255,0.1); margin-top: 28px; overflow: hidden; }
+#loadfill { height: 100%; background: rgba(255,255,255,0.7); width: 0%; transition: width 0.35s ease; }
+#loadtext { color: var(--dim2); font-family: var(--mono); font-size: 9px; letter-spacing: 4px; margin-top: 14px; text-transform: uppercase; }
+#loadsub { color: var(--dim3); font-family: var(--mono); font-size: 8px; letter-spacing: 3px; margin-top: 8px; }
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   LAYOUT
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+.main-layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+  overflow: hidden;
+}
+@media(max-width: 1100px) {
+  .main-layout { grid-template-columns: 1fr 320px; }
+}
+@media(max-width: 860px) {
+  .main-layout { grid-template-columns: 1fr; grid-template-rows: auto 55vh 1fr; }
+  .sidebar { max-height: 45vh; border-left: none !important; border-top: 1px solid var(--border); }
+}
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   TOP NAV BAR â€” matches index
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+.topbar {
+  grid-column: 1 / -1;
+  background: var(--bg);
+  border-bottom: 2px solid rgba(255,255,255,0.15);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  z-index: 50;
+}
+.topbar-logo {
+  font-family: var(--serif);
+  font-weight: 800; font-size: 20px; color: #fff;
+  font-style: italic; letter-spacing: -0.03em; cursor: pointer;
+}
+.topbar-logo span {
+  font-style: normal; font-family: var(--mono); font-size: 10px; font-weight: 400;
+  margin-left: 10px; color: var(--dim); letter-spacing: 2.5px;
+}
+.topbar-right {
+  display: flex; align-items: center; gap: 18px;
+}
+.topbar-badge {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 9px; letter-spacing: 2px; color: var(--dim);
+}
+.topbar-dot {
+  width: 7px; height: 7px; background: #fff; opacity: 0.65;
+  animation: blink 1.8s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:.65} 50%{opacity:.1} }
+.topbar-back {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
+  color: #fff; background: transparent; border: 1px solid var(--border-strong);
+  padding: 7px 18px; cursor: pointer; transition: background .2s, color .2s; text-decoration: none;
+}
+.topbar-back:hover { background: #fff; color: #000; }
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   3D VIEWPORT
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+.viewport {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+}
+.viewport canvas { display: block; width: 100% !important; height: 100% !important; }
+
+/* Viewport overlays */
+.vp-overlay { position: absolute; pointer-events: none; z-index: 10; }
+.vp-scanline {
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.008) 2px, rgba(255,255,255,0.008) 4px);
+}
+.vp-vignette {
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, transparent 30%, rgba(0,0,0,0.78) 100%);
+}
+.vp-info {
+  bottom: 20px; left: 20px;
+  color: var(--dim2); font-family: var(--mono); font-size: 8px; letter-spacing: 2px; line-height: 2.2; text-transform: uppercase;
+}
+.vp-controls-hint {
+  bottom: 20px; right: 20px;
+  color: var(--dim3); font-family: var(--mono); font-size: 8px; letter-spacing: 2px; text-align: right; line-height: 2.2;
+}
+.vp-fps {
+  top: 14px; left: 20px;
+  color: var(--dim2); font-family: var(--mono); font-size: 9px; letter-spacing: 1px;
+}
+
+/* EMG overlay canvas */
+#emg-canvas { position: absolute; inset: 0; pointer-events: none; z-index: 12; }
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   SIDEBAR PANEL
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+.sidebar {
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); }
+
+/* â”€â”€â”€ Sidebar sections â”€â”€â”€ */
+.sb-section {
+  border-bottom: 1px solid var(--border);
+  padding: 0;
+}
+.sb-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background .15s;
+  user-select: none;
+}
+.sb-header:hover { background: rgba(255,255,255,0.03); }
+.sb-tag {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--dim);
+}
+.sb-chevron {
+  font-family: var(--mono); font-size: 10px; color: var(--dim);
+  transition: transform .3s;
+}
+.sb-section.open .sb-chevron { transform: rotate(180deg); }
+.sb-body { display: none; padding: 0 20px 18px; }
+.sb-section.open .sb-body { display: block; }
+
+/* â”€â”€â”€ View control buttons â”€â”€â”€ */
+.view-btns {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+  margin-bottom: 14px;
+}
+.view-btn {
+  font-family: var(--mono); font-size: 8px; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--dim); background: transparent; border: 1px solid var(--border);
+  padding: 8px 4px; cursor: pointer; text-align: center; transition: all .15s;
+}
+.view-btn:hover, .view-btn.active {
+  background: #fff; color: #000; border-color: #fff;
+}
+
+/* â”€â”€â”€ Spec rows â”€â”€â”€ */
+.spec-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 12px;
+}
+.spec-row:last-child { border-bottom: none; }
+.spec-k { color: var(--dim); font-family: var(--body); font-size: 12px; }
+.spec-v { color: #fff; font-family: var(--mono); font-size: 11px; font-weight: 500; }
+
+/* â”€â”€â”€ Electrode cards â”€â”€â”€ */
+.electrode-card {
+  background: var(--bg); border: 1px solid var(--border); padding: 12px 14px;
+  margin-bottom: 8px; cursor: pointer; transition: background .15s, border-color .15s;
+  position: relative; overflow: hidden;
+}
+.electrode-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: rgba(255,255,255,0.2);
+}
+.electrode-card:hover, .electrode-card.active {
+  background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.3);
+}
+.electrode-card.active::before { background: #fff; }
+.elc-name {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 1.5px; color: #fff; margin-bottom: 3px;
+}
+.elc-desc { font-size: 11px; color: var(--dim); font-family: var(--body); line-height: 1.5; }
+.elc-spec {
+  margin-top: 6px; font-family: var(--mono); font-size: 9px; color: var(--dim2);
+  letter-spacing: 1px; display: flex; gap: 10px;
+}
+.elc-indicator {
+  position: absolute; top: 10px; right: 12px;
+  width: 6px; height: 6px; background: rgba(255,255,255,0.4);
+  animation: blink 1.4s ease-in-out infinite;
+}
+
+/* â”€â”€â”€ Signal waveform canvas â”€â”€â”€ */
+.signal-canvas-wrap {
+  background: var(--bg); border: 1px solid var(--border);
+  padding: 10px; margin-top: 10px; position: relative;
+}
+.signal-canvas-wrap canvas { width: 100%; height: 80px; display: block; }
+.signal-label {
+  position: absolute; top: 6px; left: 10px;
+  font-family: var(--mono); font-size: 8px; letter-spacing: 2px; color: var(--dim2);
+}
+.signal-value {
+  position: absolute; top: 6px; right: 10px;
+  font-family: var(--mono); font-size: 9px; color: var(--dim); letter-spacing: 1px;
+}
+
+/* â”€â”€â”€ DSP card â”€â”€â”€ */
+.dsp-card {
+  background: var(--bg); border: 1px solid var(--border); padding: 16px;
+  position: relative; overflow: hidden;
+}
+.dsp-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #fff;
+}
+.dsp-title {
+  font-family: var(--serif); font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 4px;
+}
+.dsp-sub {
+  font-family: var(--mono); font-size: 9px; color: var(--dim); letter-spacing: 1.5px; margin-bottom: 12px;
+}
+
+/* â”€â”€â”€ Feature pills â”€â”€â”€ */
+.feature-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.fpill {
+  font-family: var(--mono); font-size: 8px; letter-spacing: 1px; padding: 4px 10px;
+  border: 1px solid var(--border); color: var(--dim); background: transparent;
+}
+
+/* â”€â”€â”€ Stats bar â”€â”€â”€ */
+.stats-bar {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px;
+}
+.stat-mini {
+  background: var(--bg); border: 1px solid var(--border); padding: 10px 8px; text-align: center;
+}
+.stat-mini-num {
+  font-family: var(--serif); font-size: 20px; font-weight: 800; color: #fff; display: block; line-height: 1;
+}
+.stat-mini-label {
+  font-family: var(--mono); font-size: 7px; letter-spacing: 1.5px; color: var(--dim2);
+  margin-top: 4px; text-transform: uppercase;
+}
+
+/* â”€â”€â”€ ML bar â”€â”€â”€ */
+.ml-bar { margin-top: 10px; }
+.ml-row { margin-bottom: 8px; }
+.ml-row-header {
+  display: flex; justify-content: space-between; font-family: var(--mono); font-size: 9px;
+  color: var(--dim); letter-spacing: 1px; margin-bottom: 3px;
+}
+.ml-row-bar { height: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
+.ml-row-fill { height: 100%; background: #fff; width: 0%; transition: width 1.5s ease; }
+
+/* â”€â”€â”€ Toggle â”€â”€â”€ */
+.toggle-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.toggle-label { font-family: var(--mono); font-size: 9px; color: var(--dim); letter-spacing: 1px; }
+.toggle-switch {
+  width: 32px; height: 16px; background: rgba(255,255,255,0.1); position: relative; cursor: pointer;
+  border: 1px solid var(--border); transition: background .2s;
+}
+.toggle-switch.on { background: rgba(255,255,255,0.3); }
+.toggle-switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 10px; height: 10px; background: #fff; transition: left .2s;
+}
+.toggle-switch.on::after { left: 18px; }
+</style>
+</head>
+<body>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• LOADING â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="loading">
+  <div id="loadlogo">ASV</div>
+  <div id="loadbar"><div id="loadfill"></div></div>
+  <div id="loadtext">Initialising 3D Render</div>
+  <div id="loadsub">EMG Â· SURFACE MESH Â· NEURAL INTERFACE</div>
+</div>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• MAIN LAYOUT â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div class="main-layout">
+
+  <!-- â”€â”€â”€ Top bar â”€â”€â”€ -->
+  <div class="topbar">
+    <div class="topbar-logo" onclick="window.location.href='index.html'">ASV <span>3D NEURAL INTERFACE</span></div>
+    <div class="topbar-right">
+      <div class="topbar-badge"><div class="topbar-dot"></div>LIVE RENDER Â· EMG Â· ML</div>
+      <a class="topbar-back" href="index.html">â† BACK TO PROJECT</a>
+    </div>
+  </div>
+
+  <!-- â”€â”€â”€ 3D Viewport â”€â”€â”€ -->
+  <div class="viewport" id="viewport">
+    <div class="vp-overlay vp-scanline"></div>
+    <div class="vp-overlay vp-vignette"></div>
+    <div class="vp-overlay vp-info" id="vpInfo">
+      ASV-HW-001 Â· PRD v2.1<br>
+      EMG SURFACE MESH Â· 3D REF<br>
+      NODES: 6 Â· CABLES: 6<br>
+      THREE.JS r128 Â· WEBGL2
+    </div>
+    <div class="vp-overlay vp-controls-hint">
+      DRAG TO ROTATE<br>
+      SCROLL TO ZOOM<br>
+      DOUBLE-CLICK RESET
+    </div>
+    <div class="vp-overlay vp-fps" id="fpsCounter">60 FPS</div>
+    <canvas id="emg-canvas"></canvas>
+  </div>
+
+  <!-- â”€â”€â”€ Sidebar â”€â”€â”€ -->
+  <div class="sidebar">
+
+    <!-- â”Œâ”€ VIEW CONTROLS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+    <div class="sb-section open">
+      <div class="sb-header" onclick="toggleSection(this)">
+        <span class="sb-tag">â€” View Controls</span>
+        <span class="sb-chevron">â–¾</span>
+      </div>
+      <div class="sb-body">
+        <div class="view-btns">
+          <button class="view-btn active" data-view="default" onclick="setView('default',this)">DEFAULT</button>
+          <button class="view-btn" data-view="front" onclick="setView('front',this)">FRONT</button>
+          <button class="view-btn" data-view="side" onclick="setView('side',this)">SIDE</button>
+          <button class="view-btn" data-view="top" onclick="setView('top',this)">TOP</button>
+          <button class="view-btn" data-view="back" onclick="setView('back',this)">BACK</button>
+          <button class="view-btn" data-view="close" onclick="setView('close',this)">CLOSE-UP</button>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">WIREFRAME</span>
+          <div class="toggle-switch on" id="toggleWire" onclick="toggleWireframe(this)"></div>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">ELECTRODES</span>
+          <div class="toggle-switch on" id="toggleElectrodes" onclick="toggleElectrodes(this)"></div>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">CABLES</span>
+          <div class="toggle-switch on" id="toggleCables" onclick="toggleCables(this)"></div>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">DSP UNIT</span>
+          <div class="toggle-switch on" id="toggleDSP" onclick="toggleDSP(this)"></div>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">ANNOTATIONS</span>
+          <div class="toggle-switch on" id="toggleAnnotations" onclick="toggleAnnotations(this)"></div>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">AUTO-ROTATE</span>
+          <div class="toggle-switch on" id="toggleAutoRotate" onclick="toggleAutoRotateUI(this)"></div>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">PARTICLES</span>
+          <div class="toggle-switch on" id="toggleParticles" onclick="toggleParticles(this)"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- â”Œâ”€ ELECTRODE ARRAY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+    <div class="sb-section open">
+      <div class="sb-header" onclick="toggleSection(this)">
+        <span class="sb-tag">â€” EMG Electrode Array</span>
+        <span class="sb-chevron">â–¾</span>
+      </div>
+      <div class="sb-body">
+        <div id="electrodeCards"></div>
+      </div>
+    </div>
+
+    <!-- â”Œâ”€ LIVE SIGNAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+    <div class="sb-section open">
+      <div class="sb-header" onclick="toggleSection(this)">
+        <span class="sb-tag">â€” Live Signal Monitor</span>
+        <span class="sb-chevron">â–¾</span>
+      </div>
+      <div class="sb-body">
+        <div class="signal-canvas-wrap">
+          <span class="signal-label">CH1 Â· MASSETER-L</span>
+          <span class="signal-value" id="sigVal1">0.00 mV</span>
+          <canvas id="sigCanvas1" height="80"></canvas>
+        </div>
+        <div class="signal-canvas-wrap">
+          <span class="signal-label">CH2 Â· MASSETER-R</span>
+          <span class="signal-value" id="sigVal2">0.00 mV</span>
+          <canvas id="sigCanvas2" height="80"></canvas>
+        </div>
+        <div class="signal-canvas-wrap">
+          <span class="signal-label">CH3 Â· SUPRAHYOID-L</span>
+          <span class="signal-value" id="sigVal3">0.00 mV</span>
+          <canvas id="sigCanvas3" height="80"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- â”Œâ”€ DSP PROCESSOR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+    <div class="sb-section">
+      <div class="sb-header" onclick="toggleSection(this)">
+        <span class="sb-tag">â€” DSP Processor Unit</span>
+        <span class="sb-chevron">â–¾</span>
+      </div>
+      <div class="sb-body">
+        <div class="dsp-card">
+          <div class="dsp-title">ASV-DSP-001</div>
+          <div class="dsp-sub">CUSTOM ESP32-S3 SIGNAL PROCESSOR</div>
+          <div class="spec-row"><span class="spec-k">MCU</span><span class="spec-v">ESP32-S3</span></div>
+          <div class="spec-row"><span class="spec-k">ADC</span><span class="spec-v">ADS1299 Â· 24-bit</span></div>
+          <div class="spec-row"><span class="spec-k">Channels</span><span class="spec-v">6 CH Â· 1kHz</span></div>
+          <div class="spec-row"><span class="spec-k">Connectivity</span><span class="spec-v">BLE 5.0</span></div>
+          <div class="spec-row"><span class="spec-k">Battery</span><span class="spec-v">LiPo 500mAh</span></div>
+          <div class="spec-row"><span class="spec-k">Weight</span><span class="spec-v">32g</span></div>
+          <div class="feature-pills">
+            <span class="fpill">ESP32-S3</span>
+            <span class="fpill">ADS1299</span>
+            <span class="fpill">BLE 5.0</span>
+            <span class="fpill">USB-C</span>
+            <span class="fpill">LIPO</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- â”Œâ”€ ML CLASSIFICATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+    <div class="sb-section">
+      <div class="sb-header" onclick="toggleSection(this)">
+        <span class="sb-tag">â€” ML Classification</span>
+        <span class="sb-chevron">â–¾</span>
+      </div>
+      <div class="sb-body">
+        <div class="stats-bar">
+          <div class="stat-mini"><span class="stat-mini-num">95%</span><div class="stat-mini-label">TARGET ACC</div></div>
+          <div class="stat-mini"><span class="stat-mini-num">&lt;500</span><div class="stat-mini-label">LATENCY MS</div></div>
+          <div class="stat-mini"><span class="stat-mini-num">6</span><div class="stat-mini-label">CHANNELS</div></div>
+        </div>
+        <div class="ml-bar">
+          <div class="ml-row">
+            <div class="ml-row-header"><span>SVM Â· BASELINE</span><span>78%</span></div>
+            <div class="ml-row-bar"><div class="ml-row-fill" data-w="78"></div></div>
+          </div>
+          <div class="ml-row">
+            <div class="ml-row-header"><span>CNN Â· PHASE 2</span><span>87%</span></div>
+            <div class="ml-row-bar"><div class="ml-row-fill" data-w="87"></div></div>
+          </div>
+          <div class="ml-row">
+            <div class="ml-row-header"><span>TRANSFORMER Â· TARGET</span><span>95%</span></div>
+            <div class="ml-row-bar"><div class="ml-row-fill" data-w="95"></div></div>
+          </div>
+        </div>
+        <div class="feature-pills">
+          <span class="fpill">SKLEARN</span>
+          <span class="fpill">PYTORCH</span>
+          <span class="fpill">ONNX</span>
+          <span class="fpill">EDGE TPU</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- â”Œâ”€ DEVICE SPECS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+    <div class="sb-section">
+      <div class="sb-header" onclick="toggleSection(this)">
+        <span class="sb-tag">â€” Device Specifications</span>
+        <span class="sb-chevron">â–¾</span>
+      </div>
+      <div class="sb-body">
+        <div class="spec-row"><span class="spec-k">Form Factor</span><span class="spec-v">Chin-strap wearable</span></div>
+        <div class="spec-row"><span class="spec-k">Weight</span><span class="spec-v">88g total</span></div>
+        <div class="spec-row"><span class="spec-k">Electrode Type</span><span class="spec-v">Ag/AgCl dry</span></div>
+        <div class="spec-row"><span class="spec-k">Sampling Rate</span><span class="spec-v">1000 Hz</span></div>
+        <div class="spec-row"><span class="spec-k">Resolution</span><span class="spec-v">24-bit</span></div>
+        <div class="spec-row"><span class="spec-k">SNR</span><span class="spec-v">> 90 dB</span></div>
+        <div class="spec-row"><span class="spec-k">Battery Life</span><span class="spec-v">8+ hrs</span></div>
+        <div class="spec-row"><span class="spec-k">Charge</span><span class="spec-v">USB-C Â· 1.5hr</span></div>
+        <div class="spec-row"><span class="spec-k">BOM Cost</span><span class="spec-v">â‚¹8,700</span></div>
+      </div>
+    </div>
+
+    <!-- â”Œâ”€ RENDER INFO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+    <div class="sb-section">
+      <div class="sb-header" onclick="toggleSection(this)">
+        <span class="sb-tag">â€” Render Info</span>
+        <span class="sb-chevron">â–¾</span>
+      </div>
+      <div class="sb-body">
+        <div class="spec-row"><span class="spec-k">Engine</span><span class="spec-v">Three.js r128</span></div>
+        <div class="spec-row"><span class="spec-k">Renderer</span><span class="spec-v">WebGL2</span></div>
+        <div class="spec-row"><span class="spec-k">Head Verts</span><span class="spec-v" id="vertCount">â€”</span></div>
+        <div class="spec-row"><span class="spec-k">Subdivision</span><span class="spec-v">80 Ã— 80</span></div>
+        <div class="spec-row"><span class="spec-k">Shadows</span><span class="spec-v">PCF Soft</span></div>
+        <div class="spec-row"><span class="spec-k">Post-FX</span><span class="spec-v">Scanline + Vignette</span></div>
+      </div>
+    </div>
+
+  </div> <!-- /sidebar -->
+
+</div> <!-- /main-layout -->
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• THREE.JS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” LOADING â”â”â” */
+const fill = document.getElementById('loadfill');
+const loadingEl = document.getElementById('loading');
+let prog = 0;
+const loadInt = setInterval(() => {
+  prog = Math.min(prog + Math.random() * 18, 100);
+  fill.style.width = prog + '%';
+  if(prog >= 100){ clearInterval(loadInt); setTimeout(() => { loadingEl.classList.add('hidden'); animateMLBars(); }, 500); }
+}, 100);
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” SCENE â”â”â” */
+const viewport = document.getElementById('viewport');
+const W = viewport.clientWidth, H = viewport.clientHeight;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x080a0e);
+scene.fog = new THREE.FogExp2(0x080a0e, 0.028);
+
+const camera = new THREE.PerspectiveCamera(36, W / H, 0.1, 100);
+camera.position.set(0, 0.3, 6.4);
+camera.lookAt(0, 0.1, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setSize(W, H);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.physicallyCorrectLights = true;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+viewport.insertBefore(renderer.domElement, viewport.firstChild);
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” REALISTIC LIGHTING RIG â”â”â” */
+// Hemisphere â€” sky blue tint on top, warm ground bounce
+const hemi = new THREE.HemisphereLight(0x1a2a4a, 0x2a1a0a, 0.55);
+scene.add(hemi);
+
+// Key light â€” warm slightly off-white (photography key)
+const keyLight = new THREE.DirectionalLight(0xfff5e8, 2.4);
+keyLight.position.set(3.5, 5, 4);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.width = 2048;
+keyLight.shadow.mapSize.height = 2048;
+keyLight.shadow.camera.near = 0.5;
+keyLight.shadow.camera.far = 20;
+keyLight.shadow.camera.left = -5;
+keyLight.shadow.camera.right = 5;
+keyLight.shadow.camera.top = 5;
+keyLight.shadow.camera.bottom = -5;
+keyLight.shadow.bias = -0.0004;
+scene.add(keyLight);
+
+// Rim light â€” cool blue from behind-left (classic portrait rim)
+const rimLight = new THREE.DirectionalLight(0x4488cc, 1.6);
+rimLight.position.set(-4, 2, -4);
+scene.add(rimLight);
+
+// Kicker â€” warm from below-right to fill jaw/chin
+const kickerLight = new THREE.PointLight(0xffe0a0, 1.8, 14);
+kickerLight.position.set(2.5, -2, 2);
+scene.add(kickerLight);
+
+// Fill â€” soft from front-left, very low intensity
+const fillLight = new THREE.PointLight(0xc0c8d8, 0.7, 18);
+fillLight.position.set(-3, 1, 4);
+scene.add(fillLight);
+
+// Top backlight â€” cool hair/skull separation
+const topLight = new THREE.DirectionalLight(0x6688bb, 0.5);
+topLight.position.set(0, 8, -3);
+scene.add(topLight);
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” REALISTIC MATERIALS â”â”â” */
+
+// â”€ SKIN â€” MeshPhysicalMaterial with clearcoat to simulate subsurface & skin gloss
+const skinMat = new THREE.MeshPhysicalMaterial({
+  color: 0x8B5E4A,          // warm medium skin tone
+  roughness: 0.72,
+  metalness: 0.0,
+  clearcoat: 0.18,           // thin waxy/oily skin layer
+  clearcoatRoughness: 0.55,
+  reflectivity: 0.28,
+  sheen: 0.12,               // subtle sub-surface sheen
+  sheenColor: new THREE.Color(0xff8866),
+  side: THREE.FrontSide,
+});
+
+// â”€ FAINT wireframe â€” barely visible topology lines
+const wireMat = new THREE.LineBasicMaterial({ color: 0x3d2a20, transparent: true, opacity: 0.18, linewidth: 1 });
+
+// â”€ ELECTRODE â€” polished Ag/AgCl, near-chrome silver
+const agClMat = new THREE.MeshPhysicalMaterial({
+  color: 0xd8dce0,
+  roughness: 0.08,
+  metalness: 0.95,
+  reflectivity: 1.0,
+  clearcoat: 0.6,
+  clearcoatRoughness: 0.1,
+});
+
+// â”€ ELECTRODE GEL PAD â€” translucent medical gel (blue-tinted)
+const gelMat = new THREE.MeshPhysicalMaterial({
+  color: 0x3399bb,
+  roughness: 0.15,
+  metalness: 0.0,
+  transparent: true,
+  opacity: 0.55,
+  transmission: 0.35,
+  ior: 1.38,
+  clearcoat: 0.8,
+  clearcoatRoughness: 0.05,
+});
+
+// â”€ CABLE OUTER â€” matte black medical-grade silicone rubber
+const rubberMat = new THREE.MeshStandardMaterial({
+  color: 0x0e0e0e,
+  roughness: 0.88,
+  metalness: 0.0,
+});
+
+// â”€ CABLE INNER CONDUCTOR hint (small exposed connector tips)
+const conductorMat = new THREE.MeshPhysicalMaterial({
+  color: 0xc8a028,   // gold/copper
+  roughness: 0.25,
+  metalness: 0.95,
+});
+
+// â”€ PCB BOARD â€” dark military-green FR4
+const pcbMat = new THREE.MeshStandardMaterial({
+  color: 0x0d1f10,
+  roughness: 0.68,
+  metalness: 0.06,
+});
+
+// â”€ PCB TRACES â€” matte gold
+const traceMat = new THREE.MeshPhysicalMaterial({
+  color: 0xb8860a,
+  roughness: 0.3,
+  metalness: 0.9,
+});
+
+// â”€ IC CHIP â€” polished black epoxy with tiny specular
+const chipMat = new THREE.MeshPhysicalMaterial({
+  color: 0x0b0b0b,
+  roughness: 0.4,
+  metalness: 0.15,
+  clearcoat: 0.5,
+  clearcoatRoughness: 0.2,
+});
+
+// â”€ ESP32 module silver shield
+const shieldMat = new THREE.MeshPhysicalMaterial({
+  color: 0x888e90,
+  roughness: 0.3,
+  metalness: 0.85,
+});
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” HEAD GEOMETRY â”â”â” */
+function buildHead(){
+  const geo = new THREE.SphereGeometry(1.65, 80, 80);
+  const pos = geo.attributes.position;
+  const n = pos.count;
+  for(let i = 0; i < n; i++){
+    let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    y *= 1.22;
+    if(z < 0) z *= 0.80;
+    if(y < -1.1){ const t = Math.min((-y-1.1)/0.55,1); x*=(1-t*0.55); z*=(1-t*0.30); y*=1.08; }
+    if(y > 1.1) z *= (1-(y-1.1)*0.32);
+    { const k=Math.exp(-((Math.abs(x)-1.0)**2/0.08+(y-0.05)**2/0.10+(z-0.75)**2/0.22)); x+=Math.sign(x)*k*0.15; z+=k*0.07; }
+    if(z>0.5){ const ndx=x,ndy=y-0.04,ndz=z-1.03; const nd2=ndx*ndx+ndy*ndy*0.45+ndz*ndz*0.35; const nk=Math.exp(-(nd2/0.042)); z+=nk*0.30; y-=nk*0.07; }
+    if(z>0.6){ const bx=Math.abs(x),by=y-0.40,bz=z-0.93; if(bx<0.13&&by>-0.35&&by<0.15&&bz>-0.08&&bz<0.22){ const bk=Math.exp(-(bx*bx/0.007+by*by/0.055+bz*bz/0.04)); z+=bk*0.10; } }
+    if(z>0.5){ const brx=Math.abs(x)-0.44,bry=y-0.63,brz=z-0.90; const brk=Math.exp(-(brx*brx/0.09+bry*bry/0.011+brz*brz/0.04)); z+=brk*0.10; y+=brk*0.04; }
+    if(z>0.7&&Math.abs(x)<0.25){ const lpy=y+0.50,lpz=z-1.02; if(lpy>-0.22&&lpy<0.12&&lpz>-0.12&&lpz<0.15){ const lpk=Math.exp(-(x*x/0.018+lpy*lpy/0.018+lpz*lpz/0.018)); z-=lpk*0.045; } }
+    if(z>0.7){ const ulpy=y+0.44,ulpz=z-1.01; const ulk=Math.exp(-(x*x/0.040+ulpy*ulpy/0.003+ulpz*ulpz/0.022)); z+=ulk*0.065; }
+    if(z>0.7){ const lly=y+0.63,llz=z-0.98; const llk=Math.exp(-(x*x/0.050+lly*lly/0.003+llz*llz/0.022)); z+=llk*0.072; }
+    { const tx=Math.abs(x)-1.26,ty=y-0.70,tz=z-0.28; const tk=Math.exp(-(tx*tx/0.04+ty*ty/0.06+tz*tz/0.10)); x-=Math.sign(x)*tk*0.10; }
+    if(z>0.5){ const ex=Math.abs(x)-0.43,ey=y-0.40,ez=z-1.08; const ek=Math.exp(-(ex*ex/0.024+ey*ey/0.017+ez*ez/0.014)); z-=ek*0.075; }
+    { const earx=Math.abs(x)-1.58,eary=y-0.04,earz=z+0.04; const eark=Math.exp(-(earx*earx/0.014+eary*eary/0.062+earz*earz/0.042)); x+=Math.sign(x)*eark*0.24; }
+    if(y<-0.6&&y>-1.2){ const t=(y+0.6)/-0.6; x*=(1+t*0.05); }
+    pos.setXYZ(i,x,y,z);
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+
+function buildNeck(){
+  const geo = new THREE.CylinderGeometry(0.50, 0.63, 1.42, 32, 8);
+  const pos = geo.attributes.position;
+  for(let i=0;i<pos.count;i++){ let x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i); z+=(y+0.71)*0.07; pos.setXYZ(i,x,y,z); }
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” BUILD HEAD/NECK/SHOULDER â”â”â” */
+const headGeo = buildHead();
+const headMesh = new THREE.Mesh(headGeo, skinMat);
+headMesh.castShadow = true; headMesh.receiveShadow = true;
+const headWire = new THREE.LineSegments(new THREE.WireframeGeometry(headGeo), wireMat.clone());
+headMesh.add(headWire);
+
+document.getElementById('vertCount').textContent = headGeo.attributes.position.count.toLocaleString();
+
+const neckGeo = buildNeck();
+const neckMesh = new THREE.Mesh(neckGeo, skinMat.clone());
+neckMesh.position.set(0,-2.30,0.06); neckMesh.castShadow=true; neckMesh.receiveShadow=true;
+neckMesh.add(new THREE.LineSegments(new THREE.WireframeGeometry(neckGeo), wireMat.clone()));
+
+// Shoulder â€” slightly different skin tone (clothes transition)
+const shoulderSkin = skinMat.clone();
+shoulderSkin.color.setHex(0x1a1a22); shoulderSkin.roughness = 0.92; shoulderSkin.clearcoat = 0.0;
+const shoulderGeo = new THREE.CylinderGeometry(1.38,1.48,0.30,36,3);
+const shoulderMesh = new THREE.Mesh(shoulderGeo, shoulderSkin);
+shoulderMesh.position.set(0,-3.14,-0.12); shoulderMesh.castShadow=true; shoulderMesh.receiveShadow=true;
+shoulderMesh.add(new THREE.LineSegments(new THREE.WireframeGeometry(shoulderGeo), wireMat.clone()));
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” ELECTRODE DATA â”â”â” */
+const electrodeData = [
+  { pos: new THREE.Vector3( 1.18,-0.35, 0.62), label:'MASSETER-L',    id:'ML',  muscle:'Masseter',    location:'Left cheek lateral',     impedance:'5.2 kÎ©', channel:'CH1' },
+  { pos: new THREE.Vector3(-1.18,-0.35, 0.62), label:'MASSETER-R',    id:'MR',  muscle:'Masseter',    location:'Right cheek lateral',    impedance:'4.8 kÎ©', channel:'CH2' },
+  { pos: new THREE.Vector3( 0.28,-1.60, 0.72), label:'SUPRAHYOID-L',  id:'SHL', muscle:'Suprahyoid',  location:'Sub-mandibular left',    impedance:'6.1 kÎ©', channel:'CH3' },
+  { pos: new THREE.Vector3(-0.28,-1.60, 0.72), label:'SUPRAHYOID-R',  id:'SHR', muscle:'Suprahyoid',  location:'Sub-mandibular right',   impedance:'5.9 kÎ©', channel:'CH4' },
+  { pos: new THREE.Vector3( 0.98,-0.05, 0.96), label:'BUCCINATOR-L',  id:'BL',  muscle:'Buccinator',  location:'Left cheek anterior',    impedance:'4.5 kÎ©', channel:'CH5' },
+  { pos: new THREE.Vector3(-0.98,-0.05, 0.96), label:'BUCCINATOR-R',  id:'BR',  muscle:'Buccinator',  location:'Right cheek anterior',   impedance:'4.7 kÎ©', channel:'CH6' },
+];
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” REALISTIC ELECTRODE ASSEMBLY â”â”â” */
+// Each electrode = flat disc (Ag/AgCl pad) + gel annular ring + connector bump + cable exit
+const electrodeGroup = new THREE.Group();
+const electrodeObjects = [];
+
+electrodeData.forEach((d, idx) => {
+  const elGroup = new THREE.Group();
+  elGroup.position.copy(d.pos);
+
+  // Orient electrode to face outward from head center
+  elGroup.lookAt(d.pos.clone().multiplyScalar(2));
+
+  // 1. Main electrode disc (Ag/AgCl) â€” flat cylinder
+  const discGeo = new THREE.CylinderGeometry(0.10, 0.10, 0.018, 32);
+  const disc = new THREE.Mesh(discGeo, agClMat.clone());
+  disc.rotation.x = Math.PI / 2;
+  elGroup.add(disc);
+
+  // 2. Gel pad ring â€” translucent annular flange around disc
+  const gelGeo = new THREE.TorusGeometry(0.115, 0.028, 12, 32);
+  const gel = new THREE.Mesh(gelGeo, gelMat.clone());
+  elGroup.add(gel);
+
+  // 3. Outer adhesive ring impression â€” very thin dark ring
+  const adhesiveGeo = new THREE.TorusGeometry(0.145, 0.006, 8, 32);
+  const adhesive = new THREE.Mesh(adhesiveGeo, new THREE.MeshStandardMaterial({ color: 0x1a1008, roughness: 0.95 }));
+  elGroup.add(adhesive);
+
+  // 4. Connector housing â€” small cylinder protruding outward
+  const connGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.06, 12);
+  const conn = new THREE.Mesh(connGeo, chipMat.clone());
+  conn.rotation.x = Math.PI / 2;
+  conn.position.z = -0.04; // sticks out back
+  elGroup.add(conn);
+
+  // 5. Conductor tip â€” gold
+  const tipGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.016, 8);
+  const tip = new THREE.Mesh(tipGeo, conductorMat.clone());
+  tip.rotation.x = Math.PI / 2;
+  tip.position.z = -0.07;
+  elGroup.add(tip);
+
+  // 6. Status LED on disc face (tiny glowing dot)
+  const ledDotGeo = new THREE.SphereGeometry(0.008, 8, 8);
+  const ledDot = new THREE.Mesh(ledDotGeo, new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.9 }));
+  ledDot.position.set(0.06, 0.06, 0.012);
+  disc.add(ledDot);
+
+  electrodeGroup.add(elGroup);
+  electrodeObjects.push({ mesh: elGroup, data: d, disc, gel, ledDot });
+});
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” REALISTIC CABLES â”â”â” */
+function makeCable(from, to, sag, twist){
+  // Multi-segment bezier for a natural drape
+  const mid1 = from.clone().lerp(to, 0.33);
+  const mid2 = from.clone().lerp(to, 0.66);
+  mid1.y -= sag * 0.7; mid1.z += 0.06 + twist;
+  mid2.y -= sag;       mid2.x += twist * 0.5;
+  const curve = new THREE.CubicBezierCurve3(from, mid1, mid2, to);
+  return new THREE.TubeGeometry(curve, 32, 0.012, 8, false);
+}
+
+const dspAnchor = new THREE.Vector3(0, -2.9, -0.75);
+const cableGroup = new THREE.Group();
+
+electrodeData.forEach((d, i) => {
+  const sag = 0.22 + (i % 3) * 0.07;
+  const twist = (i - 2.5) * 0.05;
+  const cGeo = makeCable(d.pos, dspAnchor, sag, twist);
+  const cMesh = new THREE.Mesh(cGeo, rubberMat.clone());
+  cMesh.castShadow = true;
+  cableGroup.add(cMesh);
+});
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” REALISTIC DSP UNIT â”â”â” */
+const dspGroup = new THREE.Group();
+
+// â”€â”€ PCB board
+const pcbGeo = new THREE.BoxGeometry(1.1, 0.016, 0.72);
+const pcbBoard = new THREE.Mesh(pcbGeo, pcbMat);
+pcbBoard.receiveShadow = true; pcbBoard.castShadow = true;
+dspGroup.add(pcbBoard);
+
+// PCB edge chamfer lines
+const pcbEdges = new THREE.LineSegments(new THREE.EdgesGeometry(pcbGeo), new THREE.LineBasicMaterial({ color: 0x1a3a1a, transparent: true, opacity: 0.7 }));
+dspGroup.add(pcbEdges);
+
+// â”€â”€ ESP32-S3 module (silver shielded square)
+const espGeo = new THREE.BoxGeometry(0.48, 0.062, 0.30);
+const espMod = new THREE.Mesh(espGeo, shieldMat);
+espMod.position.set(-0.2, 0.038, 0.04);
+espMod.castShadow = true;
+dspGroup.add(espMod);
+// Marking text pad sim â€” dark label on ESP module
+const espLabel = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.002, 0.14), new THREE.MeshBasicMaterial({ color: 0x202820 }));
+espLabel.position.set(0, 0.031, 0);
+espMod.add(espLabel);
+
+// â”€â”€ ADS1299 ADC chip â€” larger black IC
+const adsGeo = new THREE.BoxGeometry(0.22, 0.042, 0.22);
+const adsMesh = new THREE.Mesh(adsGeo, chipMat);
+adsMesh.position.set(0.28, 0.028, -0.10);
+adsMesh.castShadow = true;
+dspGroup.add(adsMesh);
+// Pin traces on ADS1299
+[-0.06, 0, 0.06].forEach(oz => {
+  [0.12, -0.12].forEach(ox => {
+    const pinGeo = new THREE.BoxGeometry(0.06, 0.006, 0.012);
+    const pin = new THREE.Mesh(pinGeo, traceMat);
+    pin.position.set(ox, -0.021, oz);
+    adsMesh.add(pin);
+  });
+});
+
+// â”€â”€ USB-C connector
+const usbGeo = new THREE.BoxGeometry(0.09, 0.045, 0.052);
+const usbMesh = new THREE.Mesh(usbGeo, shieldMat.clone());
+usbMesh.position.set(0.52, 0.013, 0.22);
+dspGroup.add(usbMesh);
+
+// â”€â”€ Connector pins block (6 x tiny cylinders)
+for(let pi = 0; pi < 6; pi++){
+  const pinMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.04, 6), conductorMat.clone());
+  pinMesh.position.set(-0.48 + pi * 0.02, 0, 0.26);
+  pinMesh.rotation.x = Math.PI / 2;
+  dspGroup.add(pinMesh);
+}
+
+// â”€â”€ SMD resistors/capacitors â€” small scattered components
+const smdPositions = [
+  [0.35, -0.08], [0.35, 0.08], [-0.08, -0.2], [-0.08, 0.2],
+  [0.16, -0.25], [0.16, 0.25], [0.06, 0], [-0.42, 0.15]
+];
+smdPositions.forEach(([px, pz]) => {
+  const isResistor = Math.random() > 0.5;
+  const smdGeo = isResistor
+    ? new THREE.BoxGeometry(0.04, 0.018, 0.022)
+    : new THREE.CylinderGeometry(0.012, 0.012, 0.024, 8);
+  const smd = new THREE.Mesh(smdGeo, isResistor
+    ? new THREE.MeshStandardMaterial({ color: 0x1a1208, roughness: 0.7 })
+    : new THREE.MeshStandardMaterial({ color: 0x8b7a30, roughness: 0.4, metalness: 0.6 }));
+  smd.position.set(px, 0.018, pz);
+  if(!isResistor) smd.rotation.x = Math.PI / 2;
+  dspGroup.add(smd);
+});
+
+// â”€â”€ Gold traces (thin flat strips)
+const traceConfigs = [
+  { x: -0.05, z: -0.02, w: 0.38, d: 0.007 },
+  { x: 0.12,  z:  0.06, w: 0.26, d: 0.007 },
+  { x: -0.18, z:  0.12, w: 0.18, d: 0.005 },
+  { x:  0.30, z: -0.15, w: 0.20, d: 0.005 },
+];
+traceConfigs.forEach(t => {
+  const trGeo = new THREE.BoxGeometry(t.w, 0.003, t.d);
+  const tr = new THREE.Mesh(trGeo, traceMat);
+  tr.position.set(t.x, 0.011, t.z);
+  dspGroup.add(tr);
+});
+
+// â”€â”€ RGB LED indicator (3 tiny spheres)
+['#ff2200','#22ff44','#0088ff'].forEach((col, i) => {
+  const ledGeo = new THREE.SphereGeometry(0.012, 8, 8);
+  const led = new THREE.Mesh(ledGeo, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.85 }));
+  led.position.set(0.42, 0.022, 0.1 + i * 0.065);
+  led.userData.ledIdx = i;
+  dspGroup.add(led);
+});
+
+// â”€â”€ Enclosure walls (partial â€” open top to show PCB)
+const wallMat = new THREE.MeshPhysicalMaterial({ color: 0x111318, roughness: 0.75, metalness: 0.3, clearcoat: 0.2, clearcoatRoughness: 0.4 });
+[
+  { pos:[0,-0.068,0],  geo: new THREE.BoxGeometry(1.16, 0.12, 0.78) },   // bottom plate
+  { pos:[0, 0.04, -0.39], geo: new THREE.BoxGeometry(1.16, 0.14, 0.012) }, // back wall
+  { pos:[0, 0.04,  0.39], geo: new THREE.BoxGeometry(1.0,  0.14, 0.012) }, // front wall (shorter for port)
+  { pos:[-0.58, 0.04, 0], geo: new THREE.BoxGeometry(0.012, 0.14, 0.78) }, // left wall
+  { pos:[ 0.58, 0.04, 0], geo: new THREE.BoxGeometry(0.012, 0.14, 0.78) }, // right wall
+].forEach(w => {
+  const m = new THREE.Mesh(w.geo, wallMat);
+  m.position.set(...w.pos);
+  m.castShadow = true; m.receiveShadow = true;
+  dspGroup.add(m);
+});
+
+// â”€â”€ Antenna trace (coplanar wave guide aesthetic)
+const antGeo = new THREE.BoxGeometry(0.22, 0.004, 0.012);
+const antMesh = new THREE.Mesh(antGeo, traceMat);
+antMesh.position.set(-0.38, 0.011, -0.28);
+dspGroup.add(antMesh);
+
+dspGroup.position.set(0, -3.20, -0.68);
+dspGroup.rotation.x = 0.16;
+dspGroup.rotation.y = 0.08;
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” GROUP EVERYTHING â”â”â” */
+const group = new THREE.Group();
+group.add(headMesh);
+group.add(neckMesh);
+group.add(shoulderMesh);
+group.add(electrodeGroup);
+group.add(cableGroup);
+group.add(dspGroup);
+group.position.y = 0.55;
+scene.add(group);
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” GROUND â”â”â” */
+const gridHelper = new THREE.GridHelper(14, 28, 0x111622, 0x0d1018);
+gridHelper.position.y = -3.5;
+scene.add(gridHelper);
+
+// Subtle reflection plane
+const floorGeo = new THREE.PlaneGeometry(14, 14);
+const floorMat = new THREE.MeshPhysicalMaterial({ color: 0x08090c, roughness: 0.3, metalness: 0.6, transparent: true, opacity: 0.35 });
+const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+floorMesh.rotation.x = -Math.PI / 2;
+floorMesh.position.y = -3.5;
+floorMesh.receiveShadow = true;
+scene.add(floorMesh);
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” PARTICLES â”â”â” */
+const pGeo = new THREE.BufferGeometry();
+const pCount = 500;
+const pPos = new Float32Array(pCount * 3);
+const pCol = new Float32Array(pCount * 3);
+for(let i = 0; i < pCount; i++){
+  pPos[i*3]   = (Math.random()-0.5)*24;
+  pPos[i*3+1] = (Math.random()-0.5)*20;
+  pPos[i*3+2] = (Math.random()-0.5)*20 - 2;
+  pCol[i*3]   = 0.2 + Math.random() * 0.1;
+  pCol[i*3+1] = 0.3 + Math.random() * 0.1;
+  pCol[i*3+2] = 0.5 + Math.random() * 0.2;
+}
+pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
+const particleMat = new THREE.PointsMaterial({ size: 0.018, transparent: true, opacity: 0.45, vertexColors: true });
+const particles = new THREE.Points(pGeo, particleMat);
+scene.add(particles);
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” SIDEBAR ELECTRODE CARDS â”â”â” */
+const cardsContainer = document.getElementById('electrodeCards');
+electrodeData.forEach((d, idx) => {
+  const card = document.createElement('div');
+  card.className = 'electrode-card';
+  card.id = 'elCard-' + idx;
+  card.innerHTML = `
+    <div class="elc-indicator"></div>
+    <div class="elc-name">${d.label}</div>
+    <div class="elc-desc">${d.muscle} Â· ${d.location}</div>
+    <div class="elc-spec"><span>${d.channel}</span><span>${d.impedance}</span><span>Ag/AgCl</span></div>
+  `;
+  card.addEventListener('click', () => highlightElectrode(idx));
+  cardsContainer.appendChild(card);
+});
+
+let activeElectrode = -1;
+
+function highlightElectrode(idx){
+  document.querySelectorAll('.electrode-card').forEach((c,i) => c.classList.toggle('active', i===idx));
+  electrodeObjects.forEach(({mesh, disc}, i) => {
+    disc.material.emissive = new THREE.Color(i===idx ? 0x224444 : 0x000000);
+    mesh.scale.setScalar(i===idx ? 1.35 : 1.0);
+  });
+  activeElectrode = idx;
+  const ed = electrodeData[idx];
+  const angle = Math.atan2(ed.pos.x, ed.pos.z);
+  targetRotY = -angle;
+  targetRotX = Math.atan2(-ed.pos.y + 0.5, 2) * 0.3;
+  targetZoom = 4.5;
+  autoRotate = false; clearTimeout(autoTimer);
+  autoTimer = setTimeout(() => { autoRotate = true; }, 5000);
+}
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” SIGNAL CANVASES â”â”â” */
+const sigCanvases = [
+  { canvas: document.getElementById('sigCanvas1'), ctx: null, buf: [], valEl: document.getElementById('sigVal1') },
+  { canvas: document.getElementById('sigCanvas2'), ctx: null, buf: [], valEl: document.getElementById('sigVal2') },
+  { canvas: document.getElementById('sigCanvas3'), ctx: null, buf: [], valEl: document.getElementById('sigVal3') },
+];
+sigCanvases.forEach(s => { s.ctx = s.canvas.getContext('2d'); s.buf = new Array(200).fill(0); });
+
+function updateSignals(){
+  sigCanvases.forEach((s, idx) => {
+    const w = s.canvas.width = s.canvas.clientWidth;
+    const h = s.canvas.height = 80;
+    const t = Date.now() * 0.001;
+    let v = 0;
+    for(let f=1;f<=8;f++) v += Math.sin(t*(20+f*15+idx*7)+idx)*(0.3/f);
+    v += (Math.random()-0.5)*0.4;
+    if(Math.sin(t*0.5+idx*2.1)>0.7){ v*=2.2; v+=Math.sin(t*120+idx)*0.3; }
+    s.buf.push(v); if(s.buf.length>200) s.buf.shift();
+    s.valEl.textContent = (v*0.5).toFixed(2)+' mV';
+    s.ctx.clearRect(0,0,w,h);
+    s.ctx.strokeStyle='rgba(255,255,255,0.04)'; s.ctx.lineWidth=0.5;
+    for(let gy=0;gy<h;gy+=20){ s.ctx.beginPath(); s.ctx.moveTo(0,gy); s.ctx.lineTo(w,gy); s.ctx.stroke(); }
+    for(let gx=0;gx<w;gx+=40){ s.ctx.beginPath(); s.ctx.moveTo(gx,0); s.ctx.lineTo(gx,h); s.ctx.stroke(); }
+    const step=w/s.buf.length;
+    // Glow
+    s.ctx.beginPath(); s.ctx.strokeStyle='rgba(0,200,180,0.12)'; s.ctx.lineWidth=4;
+    s.buf.forEach((val,i)=>{ const x=i*step,y=h/2-val*(h*0.35); if(i===0) s.ctx.moveTo(x,y); else s.ctx.lineTo(x,y); }); s.ctx.stroke();
+    // Signal
+    s.ctx.beginPath(); s.ctx.strokeStyle='rgba(0,230,200,0.7)'; s.ctx.lineWidth=1.2;
+    s.buf.forEach((val,i)=>{ const x=i*step,y=h/2-val*(h*0.35); if(i===0) s.ctx.moveTo(x,y); else s.ctx.lineTo(x,y); }); s.ctx.stroke();
+  });
+}
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” EMG CANVAS OVERLAY â”â”â” */
+const emgCanvas = document.getElementById('emg-canvas');
+const emgCtx = emgCanvas.getContext('2d');
+let showAnnotations = true;
+function updateEMGCanvas(){ emgCanvas.width=viewport.clientWidth; emgCanvas.height=viewport.clientHeight; }
+updateEMGCanvas();
+
+function projectToScreen(worldPos){
+  const v = worldPos.clone();
+  group.localToWorld(v); v.project(camera);
+  return { x:(v.x*0.5+0.5)*emgCanvas.width, y:(-v.y*0.5+0.5)*emgCanvas.height, z:v.z };
+}
+
+function drawAnnotations(){
+  emgCtx.clearRect(0,0,emgCanvas.width,emgCanvas.height);
+  if(!showAnnotations) return;
+  electrodeObjects.forEach(({mesh, data}, idx) => {
+    // Project electrode world position
+    const worldPos = new THREE.Vector3();
+    mesh.getWorldPosition(worldPos);
+    const scr = projectToScreen(worldPos);
+    if(scr.z>1||scr.x<-80||scr.x>emgCanvas.width+80) return;
+    const isLeft = data.id.endsWith('L');
+    const offsetX = isLeft ? 80 : -80;
+    const lx = scr.x + offsetX;
+    const isActive = idx === activeElectrode;
+
+    emgCtx.beginPath();
+    emgCtx.moveTo(scr.x,scr.y);
+    emgCtx.lineTo(scr.x+offsetX*0.5,scr.y);
+    emgCtx.lineTo(lx,scr.y);
+    emgCtx.strokeStyle=isActive?'rgba(0,230,200,0.5)':'rgba(255,255,255,0.1)';
+    emgCtx.lineWidth=isActive?1.2:0.7;
+    emgCtx.stroke();
+
+    emgCtx.beginPath();
+    emgCtx.arc(scr.x,scr.y,isActive?5.5:3,0,Math.PI*2);
+    emgCtx.fillStyle=isActive?'rgba(0,230,200,0.9)':'rgba(255,255,255,0.45)';
+    emgCtx.fill();
+
+    emgCtx.font='8px "JetBrains Mono",monospace';
+    emgCtx.fillStyle=isActive?'rgba(0,230,200,0.85)':'rgba(255,255,255,0.3)';
+    emgCtx.textAlign=isLeft?'left':'right';
+    emgCtx.fillText(data.label, lx+(isLeft?4:-4), scr.y-5);
+    emgCtx.fillStyle='rgba(255,255,255,0.15)';
+    emgCtx.fillText(data.channel+' Â· '+data.impedance, lx+(isLeft?4:-4), scr.y+8);
+
+    const sqLen=34, sqX=isLeft?lx+4:lx-sqLen-4;
+    emgCtx.beginPath();
+    for(let sx=0;sx<=sqLen;sx++){
+      const t=sx/sqLen, amp=3.5*Math.sin(t*Math.PI);
+      const siny=scr.y+18+Math.sin(t*Math.PI*6+Date.now()*0.002+idx)*amp;
+      if(sx===0) emgCtx.moveTo(sqX+sx,siny); else emgCtx.lineTo(sqX+sx,siny);
+    }
+    emgCtx.strokeStyle=isActive?'rgba(0,230,200,0.3)':'rgba(255,255,255,0.14)';
+    emgCtx.lineWidth=0.9; emgCtx.stroke();
+  });
+}
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” INTERACTION â”â”â” */
+let isDragging=false, prevMouse={x:0,y:0};
+let rotY=-0.28, rotX=0.05;
+let targetRotY=-0.28, targetRotX=0.05;
+let autoRotate=true, autoTimer=null;
+let zoom=6.4, targetZoom=6.4;
+const dom=renderer.domElement;
+dom.addEventListener('mousedown',e=>{ isDragging=true;autoRotate=false;clearTimeout(autoTimer);prevMouse={x:e.clientX,y:e.clientY}; });
+dom.addEventListener('mousemove',e=>{ if(!isDragging)return; targetRotY+=(e.clientX-prevMouse.x)*0.008; targetRotX+=(e.clientY-prevMouse.y)*0.006; targetRotX=Math.max(-0.65,Math.min(0.65,targetRotX)); prevMouse={x:e.clientX,y:e.clientY}; });
+dom.addEventListener('mouseup',()=>{ isDragging=false; autoTimer=setTimeout(()=>{ autoRotate=true; },3500); });
+dom.addEventListener('dblclick',()=>{ targetRotY=-0.28;targetRotX=0.05;targetZoom=6.4;activeElectrode=-1; document.querySelectorAll('.electrode-card').forEach(c=>c.classList.remove('active')); electrodeObjects.forEach(({mesh,disc})=>{ disc.material.emissive=new THREE.Color(0x000000); mesh.scale.setScalar(1.0); }); });
+dom.addEventListener('wheel',e=>{ targetZoom+=e.deltaY*0.006; targetZoom=Math.max(3.0,Math.min(12,targetZoom)); },{passive:true});
+let touchPrev=null;
+dom.addEventListener('touchstart',e=>{ autoRotate=false;clearTimeout(autoTimer);touchPrev={x:e.touches[0].clientX,y:e.touches[0].clientY}; });
+dom.addEventListener('touchmove',e=>{ if(!touchPrev)return; targetRotY+=(e.touches[0].clientX-touchPrev.x)*0.008; targetRotX+=(e.touches[0].clientY-touchPrev.y)*0.006; targetRotX=Math.max(-0.65,Math.min(0.65,targetRotX)); touchPrev={x:e.touches[0].clientX,y:e.touches[0].clientY}; });
+dom.addEventListener('touchend',()=>{ touchPrev=null; autoTimer=setTimeout(()=>{ autoRotate=true; },3500); });
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” VIEW PRESETS â”â”â” */
+window.setView=function(view,btn){ document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); autoRotate=false; clearTimeout(autoTimer); switch(view){ case'default':targetRotY=-0.28;targetRotX=0.05;targetZoom=6.4;break; case'front':targetRotY=0;targetRotX=0;targetZoom=5.5;break; case'side':targetRotY=Math.PI/2;targetRotX=0;targetZoom=5.5;break; case'top':targetRotY=0;targetRotX=-Math.PI/2.8;targetZoom=6;break; case'back':targetRotY=Math.PI;targetRotX=0;targetZoom=5.5;break; case'close':targetRotY=0.15;targetRotX=0.02;targetZoom=3.5;break; } autoTimer=setTimeout(()=>{ autoRotate=true; },6000); };
+window.toggleWireframe=function(el){ el.classList.toggle('on'); const vis=el.classList.contains('on'); headMesh.children.forEach(c=>{ if(c.isLineSegments) c.visible=vis; }); neckMesh.children.forEach(c=>{ if(c.isLineSegments) c.visible=vis; }); };
+window.toggleElectrodes=function(el){ el.classList.toggle('on'); electrodeGroup.visible=el.classList.contains('on'); };
+window.toggleCables=function(el){ el.classList.toggle('on'); cableGroup.visible=el.classList.contains('on'); };
+window.toggleDSP=function(el){ el.classList.toggle('on'); dspGroup.visible=el.classList.contains('on'); };
+window.toggleAnnotations=function(el){ el.classList.toggle('on'); showAnnotations=el.classList.contains('on'); };
+window.toggleAutoRotateUI=function(el){ el.classList.toggle('on'); autoRotate=el.classList.contains('on'); };
+window.toggleParticles=function(el){ el.classList.toggle('on'); particles.visible=el.classList.contains('on'); };
+window.toggleSection=function(header){ header.parentElement.classList.toggle('open'); };
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” ML BARS â”â”â” */
+function animateMLBars(){ document.querySelectorAll('.ml-row-fill').forEach(bar=>{ bar.style.width=bar.dataset.w+'%'; }); }
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” RESIZE â”â”â” */
+window.addEventListener('resize',()=>{ const w=viewport.clientWidth,h=viewport.clientHeight; camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h); updateEMGCanvas(); });
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” FPS â”â”â” */
+let frameCount=0,lastFPSTime=performance.now();
+const fpsEl=document.getElementById('fpsCounter');
+function updateFPS(){ frameCount++; const now=performance.now(); if(now-lastFPSTime>=1000){ fpsEl.textContent=frameCount+' FPS'; frameCount=0; lastFPSTime=now; } }
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” LED REFS â”â”â” */
+const dspLEDs = dspGroup.children.filter(c => c.userData && c.userData.ledIdx !== undefined);
+
+/* â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â” RENDER LOOP â”â”â” */
+let clock=0, sigTimer=0;
+function animate(){
+  requestAnimationFrame(animate);
+  clock+=0.01;
+
+  if(autoRotate) targetRotY+=0.0020;
+  rotY+=(targetRotY-rotY)*0.06; rotX+=(targetRotX-rotX)*0.06; zoom+=(targetZoom-zoom)*0.06;
+  group.rotation.y=rotY; group.rotation.x=rotX;
+
+  // Very subtle breathing
+  const breathe=Math.sin(clock*0.46)*0.003;
+  group.scale.setScalar(1+breathe);
+
+  // Electrode LED pulse
+  electrodeObjects.forEach(({ledDot},i)=>{
+    if(ledDot){
+      const p=0.5+0.5*Math.abs(Math.sin(clock*2.5+i*1.1));
+      ledDot.material.opacity=0.5+0.5*p;
+      ledDot.scale.setScalar(0.8+0.4*p);
+    }
+  });
+
+  // Electrode gel pulse (subtle scale)
+  electrodeObjects.forEach(({mesh, gel},i)=>{
+    if(gel){
+      const g=1+0.04*Math.abs(Math.sin(clock*1.8+i*0.9));
+      gel.scale.setScalar(g);
+    }
+  });
+
+  // DSP LED sequence â€” cycle through RGB
+  dspLEDs.forEach((led, i) => {
+    const phase = clock * 2.8 + i * 1.4;
+    led.material.opacity = 0.2 + 0.7 * Math.max(0, Math.sin(phase));
+  });
+
+  camera.position.z=zoom;
+  camera.lookAt(0,0.35,0);
+
+  renderer.render(scene,camera);
+  drawAnnotations();
+
+  sigTimer++; if(sigTimer%2===0) updateSignals();
+  updateFPS();
+}
+animate();
+
+})();
+</script>
+</body>
+</html>
