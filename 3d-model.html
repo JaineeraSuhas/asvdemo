@@ -243,8 +243,8 @@ body::after {
           <button class="view-btn" onclick="setView('close',this)">CLOSE-UP</button>
         </div>
         <div class="view-btns" style="margin-top:8px;">
-          <button class="view-btn" id="btnExploded" onclick="toggleExploded(this)" style="width:48%; background:rgba(255,200,0,0.1); border-color:rgba(255,200,0,0.3); color:#ffcc00; letter-spacing: 2px;">EXPLODED</button>
-          <button class="view-btn" id="btnDiagnostic" onclick="toggleDiagnostic(this)" style="width:48%; background:rgba(0,255,170,0.1); border-color:rgba(0,255,170,0.3); color:#00ffaa; letter-spacing: 2px;">DIAGNOSTIC</button>
+          <button class="view-btn" id="btnExploded" onclick="toggleExploded(this)">EXPLODED</button>
+          <button class="view-btn" id="btnDiagnostic" onclick="toggleDiagnostic(this)">DIAGNOSTIC</button>
         </div>
         <div class="toggle-row"><span class="toggle-label">WIREFRAME</span><div class="toggle-switch on" id="toggleWire" onclick="toggleWireframe(this)"></div></div>
         <div class="toggle-row"><span class="toggle-label">ELECTRODES</span><div class="toggle-switch on" id="toggleElectrodes" onclick="toggleElectrodes(this)"></div></div>
@@ -906,8 +906,8 @@ dspGroup.add(jumpersGroup);
 
 // REMOVED: Enclosure walls to keep the PCB fully visible!
 
-dspGroup.position.set(0, -1.80, 2.0); // Floating in front of the neck
-dspGroup.rotation.x = -0.15; dspGroup.rotation.y = 0; // Mostly vertical, slightly tilted for perfect camera alignment
+dspGroup.position.set(0, -2.85, 1.48); // Below the neck on the chest
+dspGroup.rotation.x = -0.55; dspGroup.rotation.y = 0; // Angled heavily forward to show components perfectly from front
 
 /* ══ GROUP EVERYTHING ══ */
 const group = new THREE.Group();
@@ -960,7 +960,7 @@ function highlightElectrode(idx){
   const ed = electrodeData[idx];
   const angle = Math.atan2(ed.pos.x, ed.pos.z);
   targetRotY = -angle; targetRotX = Math.atan2(-ed.pos.y+0.5, 2)*0.3;
-  targetZoom = 4.5; autoRotate = false; clearTimeout(autoTimer);
+  targetZoom = 4.5; targetPanY = 0.35; autoRotate = false; clearTimeout(autoTimer);
   autoTimer = setTimeout(() => { autoRotate = true; }, 5500);
 }
 
@@ -1081,6 +1081,7 @@ let isDragging=false, prevMouse={x:0,y:0};
 let rotY=-0.28, rotX=0.06, targetRotY=-0.28, targetRotX=0.06;
 let autoRotate=true, autoTimer=null;
 let zoom=6.8, targetZoom=6.8;
+let panY=0.35, targetPanY=0.35;
 const dom = renderer.domElement;
 
 dom.addEventListener('mousemove',e=>{ 
@@ -1097,7 +1098,7 @@ dom.addEventListener('mousemove',e=>{
 
 dom.addEventListener('mousedown',e=>{ isDragging=true; autoRotate=false; clearTimeout(autoTimer); prevMouse={x:e.clientX,y:e.clientY}; });
 dom.addEventListener('mouseup',()=>{ isDragging=false; autoTimer=setTimeout(()=>{ autoRotate=true; },4000); });
-dom.addEventListener('dblclick',()=>{ targetRotY=-0.28; targetRotX=0.06; targetZoom=6.8; activeElectrode=-1; document.querySelectorAll('.electrode-card').forEach(c=>c.classList.remove('active')); electrodeObjects.forEach(({mesh,disc})=>{ disc.material.emissive=new THREE.Color(0x000000); mesh.scale.setScalar(1.0); }); });
+dom.addEventListener('dblclick',()=>{ targetRotY=-0.28; targetRotX=0.06; targetZoom=6.8; targetPanY=0.35; activeElectrode=-1; document.querySelectorAll('.electrode-card').forEach(c=>c.classList.remove('active')); electrodeObjects.forEach(({mesh,disc})=>{ disc.material.emissive=new THREE.Color(0x000000); mesh.scale.setScalar(1.0); }); });
 dom.addEventListener('wheel',e=>{ targetZoom+=e.deltaY*0.006; targetZoom=Math.max(3.0,Math.min(13,targetZoom)); },{passive:true});
 let touchPrev=null;
 dom.addEventListener('touchstart',e=>{ autoRotate=false; clearTimeout(autoTimer); touchPrev={x:e.touches[0].clientX,y:e.touches[0].clientY}; 
@@ -1113,12 +1114,12 @@ window.setView=function(view,btn){
   autoRotate=false; clearTimeout(autoTimer);
   const compLabel = document.getElementById('compLabel');
   switch(view){
-    case'default':targetRotY=-0.28;targetRotX=0.06;targetZoom=6.8;compLabel.style.opacity=0;break;
-    case'front':targetRotY=0;targetRotX=0;targetZoom=5.6;compLabel.style.opacity=0;break;
-    case'side':targetRotY=Math.PI/2;targetRotX=0;targetZoom=5.6;compLabel.style.opacity=0;break;
-    case'top':targetRotY=0;targetRotX=-Math.PI/2.5;targetZoom=6.2;compLabel.style.opacity=0;break;
-    case'pcb':targetRotY=0.00;targetRotX=0.15;targetZoom=5.0;compLabel.textContent='PCB VIEW — ESP32-S3 · ADS1299 · INA128 × 3 · LiPo 500mAh';compLabel.style.opacity=1;setTimeout(()=>compLabel.style.opacity=0,4000);break;
-    case'close':targetRotY=0.12;targetRotX=0.02;targetZoom=3.4;compLabel.style.opacity=0;break;
+    case'default':targetRotY=-0.28;targetRotX=0.06;targetZoom=6.8;targetPanY=0.35;compLabel.style.opacity=0;break;
+    case'front':targetRotY=0;targetRotX=0;targetZoom=5.6;targetPanY=0.35;compLabel.style.opacity=0;break;
+    case'side':targetRotY=Math.PI/2;targetRotX=0;targetZoom=5.6;targetPanY=0.35;compLabel.style.opacity=0;break;
+    case'top':targetRotY=0;targetRotX=-Math.PI/2.5;targetZoom=6.2;targetPanY=0.35;compLabel.style.opacity=0;break;
+    case'pcb':targetRotY=0.00;targetRotX=0.55;targetZoom=3.6;targetPanY=-2.30;compLabel.textContent='PCB VIEW — ESP32-S3 · ADS1299 · INA128 × 3 · LiPo 500mAh';compLabel.style.opacity=1;setTimeout(()=>compLabel.style.opacity=0,4000);break;
+    case'close':targetRotY=0.12;targetRotX=0.02;targetZoom=3.4;targetPanY=0.35;compLabel.style.opacity=0;break;
   }
   autoTimer=setTimeout(()=>{ autoRotate=true; },7000);
 };
@@ -1194,6 +1195,7 @@ function animate(){
   rotY += (targetRotY - rotY) * 0.04; 
   rotX += (targetRotX - rotX) * 0.04; 
   zoom += (targetZoom - zoom) * 0.04;
+  panY += (targetPanY - panY) * 0.04;
   group.rotation.y = rotY; group.rotation.x = rotX;
   
   // Hande Explode State Tweening
@@ -1259,7 +1261,7 @@ function animate(){
   pcbLight.intensity = 0.55 + 0.28 * Math.sin(clock * 1.2);
 
   camera.position.z = zoom;
-  camera.lookAt(0, 0.35, 0);
+  camera.lookAt(0, panY, 0);
   renderer.render(scene, camera);
   drawAnnotations();
 
