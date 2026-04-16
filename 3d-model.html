@@ -974,7 +974,7 @@ function drawAnnotations(){
 }
 
 /* ══ INTERACTION & RAYCASTING ══ */
-const raycaster = new THREE.Raycaster();
+const hoverRaycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2(-10, -10);
 let hoveredNode = null;
 
@@ -1076,8 +1076,8 @@ function animate(){
   });
 
   // Handle Raycaster Tooltips
-  raycaster.setFromCamera(mouse, camera);
-  const intersects = raycaster.intersectObjects(interactiveNodes, false);
+  hoverRaycaster.setFromCamera(mouse, camera);
+  const intersects = hoverRaycaster.intersectObjects(interactiveNodes, false);
   if (intersects.length > 0) {
     const hit = intersects[0].object;
     if (hit !== hoveredNode) hoveredNode = hit;
