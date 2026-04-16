@@ -754,14 +754,16 @@ const strapMat = new THREE.MeshPhysicalMaterial({ color: 0x1a1a1a, roughness: 0.
 
 // Main strap loop around neck/back of head
 // Tight strap loop - closer to neck
-const strapCurve = new THREE.EllipseCurve(0, 0, 0.65, 0.85, 0, 2 * Math.PI, false, 0);
+// Tight strap loop - closer to neck but offset for zero-clipping
+const strapCurve = new THREE.EllipseCurve(0, 0, 0.72, 0.92, 0, 2 * Math.PI, false, 0);
 const strapPoints = strapCurve.getPoints(50);
-const strapGeo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(strapPoints.map(p => new THREE.Vector3(p.x, -2.0, p.y - 0.05))), 64, 0.07, 12, true);
+// Adjusted vertical placement to -1.9 to sit better on the neck taper
+const strapGeo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(strapPoints.map(p => new THREE.Vector3(p.x, -1.9, p.y - 0.08))), 64, 0.075, 12, true);
 const strapMesh = new THREE.Mesh(strapGeo, strapMat);
 strapGroup.add(strapMesh);
 
 // REMOVED: Side branches to avoid visual clutter
-scene.add(strapGroup);
+// No scene.add here; will be added to the main group later
 
 /* ══ CABLE HARNESS ══ */
 const dspAnchor = new THREE.Vector3(0, -2.35, -1.05); // Moved to BACK of neck
@@ -1014,7 +1016,7 @@ dspGroup.rotation.x = -0.55; dspGroup.rotation.y = Math.PI; // Flipped to face o
 /* ══ GROUP EVERYTHING ══ */
 const group = new THREE.Group();
 group.add(headMesh); group.add(neckMesh); group.add(shoulderMesh);
-group.add(electrodeGroup); group.add(cableGroup); group.add(dspGroup);
+group.add(electrodeGroup); group.add(cableGroup); group.add(dspGroup); group.add(strapGroup);
 group.position.y = 0.55;
 scene.add(group);
 
@@ -1061,8 +1063,20 @@ function highlightElectrode(idx){
   activeElectrode = idx;
   const ed = electrodeData[idx];
   const angle = Math.atan2(ed.pos.x, ed.pos.z);
-  targetRotY = -angle; targetRotX = Math.atan2(-ed.pos.y+0.5, 2)*0.3;
-  targetZoom = 4.5; targetPanY = 0.35; autoRotate = false; clearTimeout(autoTimer);
+  
+  // Custom camera logic for bottom nodes (SHP, REF) or side jaw (ML2, MR2)
+  targetRotY = -angle; 
+  if (ed.id === 'SHP' || ed.id === 'REF') {
+    targetRotX = -0.55; // Tilt camera UP to look under chin/neck
+    targetPanY = -0.4;   // Pan down to center the node
+    targetZoom = 4.0;
+  } else {
+    targetRotX = Math.atan2(-ed.pos.y+0.5, 2)*0.3;
+    targetPanY = 0.35;
+    targetZoom = 4.5;
+  }
+  
+  autoRotate = false; clearTimeout(autoTimer);
   autoTimer = setTimeout(() => { autoRotate = true; }, 5500);
 }
 
