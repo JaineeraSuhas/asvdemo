@@ -906,8 +906,8 @@ dspGroup.add(jumpersGroup);
 
 // REMOVED: Enclosure walls to keep the PCB fully visible!
 
-dspGroup.position.set(0, -2.85, 1.48); // Below the neck on the chest
-dspGroup.rotation.x = -0.55; dspGroup.rotation.y = 0; // Angled heavily forward to show components perfectly from front
+dspGroup.position.set(0, -1.80, 2.0); // Floating in front of the neck
+dspGroup.rotation.x = -0.15; dspGroup.rotation.y = 0; // Mostly vertical, slightly tilted for perfect camera alignment
 
 /* ══ GROUP EVERYTHING ══ */
 const group = new THREE.Group();
@@ -1117,7 +1117,7 @@ window.setView=function(view,btn){
     case'front':targetRotY=0;targetRotX=0;targetZoom=5.6;compLabel.style.opacity=0;break;
     case'side':targetRotY=Math.PI/2;targetRotX=0;targetZoom=5.6;compLabel.style.opacity=0;break;
     case'top':targetRotY=0;targetRotX=-Math.PI/2.5;targetZoom=6.2;compLabel.style.opacity=0;break;
-    case'pcb':targetRotY=0.08;targetRotX=0.60;targetZoom=4.8;compLabel.textContent='PCB VIEW — ESP32-S3 · ADS1299 · INA128 × 3 · LiPo 500mAh';compLabel.style.opacity=1;setTimeout(()=>compLabel.style.opacity=0,4000);break;
+    case'pcb':targetRotY=0.00;targetRotX=0.15;targetZoom=5.0;compLabel.textContent='PCB VIEW — ESP32-S3 · ADS1299 · INA128 × 3 · LiPo 500mAh';compLabel.style.opacity=1;setTimeout(()=>compLabel.style.opacity=0,4000);break;
     case'close':targetRotY=0.12;targetRotX=0.02;targetZoom=3.4;compLabel.style.opacity=0;break;
   }
   autoTimer=setTimeout(()=>{ autoRotate=true; },7000);
