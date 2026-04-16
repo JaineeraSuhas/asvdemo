@@ -412,36 +412,83 @@ const pcbLight = new THREE.PointLight(0x00e5aa, 0.8, 8);
 pcbLight.position.set(0, -3.5, 0.5);
 scene.add(pcbLight);
 
+/* ══ PROCEDURAL TEXTURES (PBR REALISM) ══ */
+const genSilkscreen = () => {
+  const canvas = document.createElement('canvas'); canvas.width = 1024; canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#06160a'; ctx.fillRect(0,0,1024,512); // dark green fiberglass
+  // Drawing simulated copper pads scattered
+  ctx.fillStyle = '#c5a329';
+  for(let i=0; i<300; i++) ctx.fillRect(Math.random()*1024, Math.random()*512, Math.random()*8+2, Math.random()*8+2);
+  // Drawing white silkscreen
+  ctx.fillStyle = '#dddddd'; ctx.font = 'bold 32px "JetBrains Mono", monospace';
+  ctx.fillText('ASV DSP V1.0', 740, 460); ctx.font = 'bold 16px "JetBrains Mono", monospace';
+  ctx.fillText('WARNING: HIGH GAIN', 40, 40); ctx.fillText('TX', 850, 60); ctx.fillText('RX', 850, 90);
+  for(let i=0; i<20000; i++){ ctx.fillStyle = `rgba(255,255,255,${Math.random()*0.02})`; ctx.fillRect(Math.random()*1024, Math.random()*512, 1.5, 1.5); }
+  const tex = new THREE.CanvasTexture(canvas); tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return tex;
+};
+const pcbTex = genSilkscreen();
+
+const genICLabel = (text) => {
+  const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0d0d0d'; ctx.fillRect(0,0,256,256);
+  ctx.fillStyle = '#3a3a3a'; ctx.font = 'bold 22px monospace'; ctx.textAlign='center';
+  ctx.fillText(text, 128, 128); ctx.font = '12px monospace'; ctx.fillText('SN:ASV-001X', 128, 160);
+  for(let i=0; i<8000; i++){ ctx.fillStyle = `rgba(255,255,255,${Math.random()*0.035})`; ctx.fillRect(Math.random()*256, Math.random()*256, 1, 1); }
+  const tex = new THREE.CanvasTexture(canvas);
+  return tex;
+};
+const icMatsLabelled = {};
+const getICMat = (label) => {
+  if(!icMatsLabelled[label]) {
+    icMatsLabelled[label] = new THREE.MeshPhysicalMaterial({ color: 0x0a0a0a, roughness: 0.35, metalness: 0.12, clearcoat: 0.2, map: genICLabel(label) });
+  }
+  return icMatsLabelled[label];
+};
+
+const genEnvMap = () => {
+  const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,0,256);
+  grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.3, '#334455'); grad.addColorStop(0.5, '#040508'); grad.addColorStop(1, '#000000');
+  ctx.fillStyle = grad; ctx.fillRect(0,0,512,256);
+  ctx.fillStyle = '#ffffff'; ctx.filter = 'blur(12px)';
+  ctx.fillRect(60, 40, 120, 60); ctx.fillRect(320, 30, 90, 40); // Softbox lights
+  const tex = new THREE.CanvasTexture(canvas); tex.mapping = THREE.EquirectangularReflectionMapping; return tex;
+};
+scene.environment = genEnvMap(); // Apply Studio HDRI statically
+
 /* ══ MATERIALS ══ */
 
 // Skin
 const skinMat = new THREE.MeshPhysicalMaterial({
-  color: 0x8B5E4A, roughness: 0.70, metalness: 0.0,
-  clearcoat: 0.16, clearcoatRoughness: 0.55,
-  reflectivity: 0.25,
+  color: 0x8B5E4A, roughness: 0.60, metalness: 0.1,
+  clearcoat: 0.18, clearcoatRoughness: 0.55, reflectivity: 0.35,
 });
 
 const wireMat = new THREE.LineBasicMaterial({ color: 0x3d2214, transparent: true, opacity: 0.15, linewidth: 1 });
 
-// ─── PCB Board: dark green FR4
+// ─── PCB Board: dark green FR4 with Canvas Texture
 const pcbMat = new THREE.MeshPhysicalMaterial({
-  color: 0x0b1d0e, roughness: 0.55, metalness: 0.04,
+  map: pcbTex, roughnessMap: pcbTex, color: 0x0a1a0d, roughness: 0.65, metalness: 0.15,
   clearcoat: 0.1, clearcoatRoughness: 0.6,
 });
 
 // Gold trace
 const traceMat = new THREE.MeshPhysicalMaterial({
-  color: 0xc8900a, roughness: 0.22, metalness: 0.92,
-  clearcoat: 0.3, clearcoatRoughness: 0.15,
+  color: 0xdfb021, roughness: 0.18, metalness: 1.0,
+  clearcoat: 0.4, clearcoatRoughness: 0.1,
 });
 
 // Soldermask tinted (slight green tint on top of pcb)
 const solderMaskMat = new THREE.MeshPhysicalMaterial({
-  color: 0x0e2e12, roughness: 0.7, metalness: 0.0,
+  color: 0x0e2e12, roughness: 0.6, metalness: 0.1,
   transparent: true, opacity: 0.6,
 });
 
-// IC chip (black epoxy)
+// IC chip (black epoxy Base Material)
 const chipMat = new THREE.MeshPhysicalMaterial({
   color: 0x0d0d0d, roughness: 0.35, metalness: 0.12,
   clearcoat: 0.55, clearcoatRoughness: 0.18,
@@ -449,20 +496,20 @@ const chipMat = new THREE.MeshPhysicalMaterial({
 
 // Silver metal (ESP32 can shield, USB-C)
 const shieldMat = new THREE.MeshPhysicalMaterial({
-  color: 0x9199a0, roughness: 0.25, metalness: 0.88,
-  clearcoat: 0.2, clearcoatRoughness: 0.3,
+  color: 0xdde2e8, roughness: 0.25, metalness: 1.0,
+  clearcoat: 0.5, clearcoatRoughness: 0.2,
 });
 
 // Gold/copper - exposed pads and pins
 const packagePinMat = new THREE.MeshPhysicalMaterial({
-  color: 0xd4a017, roughness: 0.18, metalness: 0.98,
-  clearcoat: 0.4, clearcoatRoughness: 0.1,
+  color: 0xdfb021, roughness: 0.15, metalness: 1.0,
+  clearcoat: 0.8, clearcoatRoughness: 0.1,
 });
 
 // Ag/AgCl electrode disc — near chrome silver
 const agClMat = new THREE.MeshPhysicalMaterial({
-  color: 0xcdd1d6, roughness: 0.06, metalness: 0.96,
-  reflectivity: 1.0, clearcoat: 0.7, clearcoatRoughness: 0.08,
+  color: 0xffffff, roughness: 0.05, metalness: 1.0,
+  reflectivity: 1.0, clearcoat: 1.0, clearcoatRoughness: 0.02,
 });
 
 // Electrode gel — blue translucent
@@ -477,16 +524,16 @@ const rubberMat = new THREE.MeshStandardMaterial({ color: 0x0d0d0d, roughness: 0
 
 // Conductor (gold/copper) for cable tips
 const conductorMat = new THREE.MeshPhysicalMaterial({
-  color: 0xc8a028, roughness: 0.22, metalness: 0.96,
+  color: 0xdfb021, roughness: 0.15, metalness: 1.0,
 });
 
 // White silkscreen text placeholder
 const silkMat = new THREE.MeshBasicMaterial({ color: 0xeaeaea });
 
-// LiPo battery casing — dark grey polymer
+// LiPo battery casing — dark grey polymer wrapped in foil
 const lipoCaseMat = new THREE.MeshPhysicalMaterial({
-  color: 0x1e1e28, roughness: 0.65, metalness: 0.15,
-  clearcoat: 0.1, clearcoatRoughness: 0.5,
+  color: 0xa0a3a8, roughness: 0.5, metalness: 0.6,
+  clearcoat: 0.2, clearcoatRoughness: 0.4,
 });
 
 // Capacitor ceramic — tan/beige
@@ -647,8 +694,8 @@ electrodeData.forEach((d, i) => {
   
   // Black rubber tube
   const tubeGeo = new THREE.TubeGeometry(curve, 36, 0.013, 8, false);
-  const cMesh = new THREE.Mesh(tubeGeo, rubberMat.clone());
-  cMesh.castShadow = true;
+  const cMesh = new THREE.Mesh(tubeGeo, new THREE.MeshPhysicalMaterial({ color: 0x050505, roughness: 0.85, clearcoat: 0.15 }));
+  cMesh.castShadow = true; cMesh.receiveShadow = true;
   cableGroup.add(cMesh);
 
   // Glowing data pulse trace
@@ -696,8 +743,11 @@ dspGroup.add(pcbBoard);
 const interactiveNodes = [];
 function addIC(name, W, H, D, pinsX, pinsZ, posX, posZ, label){
   const icGroup = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), chipMat.clone());
-  body.castShadow = true; icGroup.add(body);
+  
+  // Use array of materials to apply laser-etched label ONLY on top (+Y face)
+  const matArray = [ chipMat, chipMat, getICMat(name), chipMat, chipMat, chipMat ];
+  const body = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), matArray);
+  body.castShadow = true; body.receiveShadow = true; icGroup.add(body);
   
   // Invisible hitbox for hover interaction
   const hitBox = new THREE.Mesh(new THREE.BoxGeometry(W*1.4, H*2, D*1.4), new THREE.MeshBasicMaterial({visible: false}));
@@ -706,8 +756,9 @@ function addIC(name, W, H, D, pinsX, pinsZ, posX, posZ, label){
   icGroup.add(hitBox);
   interactiveNodes.push(hitBox);
 
-  const dot = new THREE.Mesh(new THREE.SphereGeometry(0.008, 6, 6), new THREE.MeshBasicMaterial({ color: 0x999999 }));
-  dot.position.set(-W*0.35, H/2, -D*0.35); icGroup.add(dot);
+  // Tiny crater dot for Pin 1 indicator
+  const dot = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.002, 12), new THREE.MeshPhysicalMaterial({ color: 0x050505, roughness:0.8 }));
+  dot.position.set(-W*0.35, H/2+0.001, -D*0.35); icGroup.add(dot);
   
   if (pinsX > 0) {
     const spX = D / (pinsX + 1);
