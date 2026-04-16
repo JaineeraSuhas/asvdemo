@@ -629,25 +629,40 @@ electrodeData.forEach((d, idx) => {
 });
 
 /* ══ CABLE HARNESS ══ */
-function makeCable(from, to, sag, biasX, biasZ){
-  const mid1 = from.clone().lerp(to, 0.30); const mid2 = from.clone().lerp(to, 0.65);
-  mid1.y -= sag * 0.6; mid1.z += biasZ; mid1.x += biasX;
-  mid2.y -= sag; mid2.x += biasX * 0.4;
-  const curve = new THREE.CubicBezierCurve3(from, mid1, mid2, to);
-  return new THREE.TubeGeometry(curve, 36, 0.013, 8, false);
-}
-
 const dspAnchor = new THREE.Vector3(0, -2.85, 1.48); // Moved to front chest
 const cableGroup = new THREE.Group();
+const signalLines = []; // To hold data pulses
 
 electrodeData.forEach((d, i) => {
   // slightly different exit directions
   const sag = 0.20 + (i % 3) * 0.08;
   const biasX = (i - 2.5) * 0.06;
   const biasZ = 0.04 + (i % 2) * 0.03;
-  const cGeo = makeCable(d.pos, dspAnchor, sag, biasX, biasZ);
-  const cMesh = new THREE.Mesh(cGeo, rubberMat.clone());
+  const curve = new THREE.CubicBezierCurve3(
+    d.pos, 
+    new THREE.Vector3(d.pos.x+biasX, d.pos.y-sag*0.6, d.pos.z+biasZ), 
+    new THREE.Vector3(dspAnchor.x+biasX*0.4, dspAnchor.y-sag, dspAnchor.z), 
+    dspAnchor
+  );
+  
+  // Black rubber tube
+  const tubeGeo = new THREE.TubeGeometry(curve, 36, 0.013, 8, false);
+  const cMesh = new THREE.Mesh(tubeGeo, rubberMat.clone());
   cMesh.castShadow = true;
+  cableGroup.add(cMesh);
+
+  // Glowing data pulse trace
+  const points = curve.getPoints(50);
+  const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+  const lineMat = new THREE.LineDashedMaterial({ 
+    color: 0x00ffaa, dashSize: 0.05, gapSize: 0.15, 
+    linewidth: 2, transparent: true, opacity: 0.8 
+  });
+  const dataPulse = new THREE.Line(lineGeo, lineMat);
+  dataPulse.computeLineDistances();
+  cableGroup.add(dataPulse);
+  signalLines.push(dataPulse);
+
   cableGroup.add(cMesh);
   // Small connector ferrule where cable meets electrode
   const ferruleGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.04, 10);
@@ -677,11 +692,20 @@ dspGroup.add(pcbBoard);
   });
 });
 
-// ── Helper: add basic IC ──
+// ── Helper: add basic IC with invisible raycast hit box ──
+const interactiveNodes = [];
 function addIC(name, W, H, D, pinsX, pinsZ, posX, posZ, label){
   const icGroup = new THREE.Group();
   const body = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), chipMat.clone());
   body.castShadow = true; icGroup.add(body);
+  
+  // Invisible hitbox for hover interaction
+  const hitBox = new THREE.Mesh(new THREE.BoxGeometry(W*1.4, H*2, D*1.4), new THREE.MeshBasicMaterial({visible: false}));
+  hitBox.userData = { label, desc: name };
+  hitBox.position.copy(body.position);
+  icGroup.add(hitBox);
+  interactiveNodes.push(hitBox);
+
   const dot = new THREE.Mesh(new THREE.SphereGeometry(0.008, 6, 6), new THREE.MeshBasicMaterial({ color: 0x999999 }));
   dot.position.set(-W*0.35, H/2, -D*0.35); icGroup.add(dot);
   
@@ -841,6 +865,12 @@ function highlightElectrode(idx){
   autoTimer = setTimeout(() => { autoRotate = true; }, 5500);
 }
 
+// Global UI Tooltip Injection
+const tooltip = document.createElement('div');
+tooltip.id = '3d-tooltip';
+tooltip.style.cssText = 'position:fixed; pointer-events:none; opacity:0; background:rgba(0,15,10,0.85); border:1px solid #00e5aa; color:#fff; font-family:"JetBrains Mono",monospace; font-size:10px; padding:8px 12px; border-radius:4px; transform:translate(-50%, -150%); transition:opacity 0.2s ease; z-index:100; box-shadow:0 0 16px rgba(0,229,170,0.15); backdrop-filter:blur(4px);';
+document.body.appendChild(tooltip);
+
 /* ══ SIGNAL CANVASES ══ */
 const sigCanvases = [
   { canvas:document.getElementById('sigCanvas1'), ctx:null, buf:[], valEl:document.getElementById('sigVal1') },
@@ -943,19 +973,38 @@ function drawAnnotations(){
   drawNodeSet(rightNodes, true);
 }
 
-/* ══ INTERACTION ══ */
+/* ══ INTERACTION & RAYCASTING ══ */
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2(-10, -10);
+let hoveredNode = null;
+
 let isDragging=false, prevMouse={x:0,y:0};
 let rotY=-0.28, rotX=0.06, targetRotY=-0.28, targetRotX=0.06;
 let autoRotate=true, autoTimer=null;
 let zoom=6.8, targetZoom=6.8;
 const dom = renderer.domElement;
+
+dom.addEventListener('mousemove',e=>{ 
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  
+  if(isDragging) {
+    targetRotY+=(e.clientX-prevMouse.x)*0.008; 
+    targetRotX+=(e.clientY-prevMouse.y)*0.006; 
+    targetRotX=Math.max(-0.65,Math.min(0.65,targetRotX)); 
+  }
+  prevMouse={x:e.clientX,y:e.clientY}; 
+});
+
 dom.addEventListener('mousedown',e=>{ isDragging=true; autoRotate=false; clearTimeout(autoTimer); prevMouse={x:e.clientX,y:e.clientY}; });
-dom.addEventListener('mousemove',e=>{ if(!isDragging)return; targetRotY+=(e.clientX-prevMouse.x)*0.008; targetRotX+=(e.clientY-prevMouse.y)*0.006; targetRotX=Math.max(-0.65,Math.min(0.65,targetRotX)); prevMouse={x:e.clientX,y:e.clientY}; });
 dom.addEventListener('mouseup',()=>{ isDragging=false; autoTimer=setTimeout(()=>{ autoRotate=true; },4000); });
 dom.addEventListener('dblclick',()=>{ targetRotY=-0.28; targetRotX=0.06; targetZoom=6.8; activeElectrode=-1; document.querySelectorAll('.electrode-card').forEach(c=>c.classList.remove('active')); electrodeObjects.forEach(({mesh,disc})=>{ disc.material.emissive=new THREE.Color(0x000000); mesh.scale.setScalar(1.0); }); });
 dom.addEventListener('wheel',e=>{ targetZoom+=e.deltaY*0.006; targetZoom=Math.max(3.0,Math.min(13,targetZoom)); },{passive:true});
 let touchPrev=null;
-dom.addEventListener('touchstart',e=>{ autoRotate=false; clearTimeout(autoTimer); touchPrev={x:e.touches[0].clientX,y:e.touches[0].clientY}; });
+dom.addEventListener('touchstart',e=>{ autoRotate=false; clearTimeout(autoTimer); touchPrev={x:e.touches[0].clientX,y:e.touches[0].clientY}; 
+  mouse.x = (e.touches[0].clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.touches[0].clientY / window.innerHeight) * 2 + 1;
+});
 dom.addEventListener('touchmove',e=>{ if(!touchPrev)return; targetRotY+=(e.touches[0].clientX-touchPrev.x)*0.008; targetRotX+=(e.touches[0].clientY-touchPrev.y)*0.006; targetRotX=Math.max(-0.65,Math.min(0.65,targetRotX)); touchPrev={x:e.touches[0].clientX,y:e.touches[0].clientY}; });
 dom.addEventListener('touchend',()=>{ touchPrev=null; autoTimer=setTimeout(()=>{ autoRotate=true; },4000); });
 
@@ -994,18 +1043,60 @@ let frameCount=0, lastFPSTime=performance.now();
 const fpsEl=document.getElementById('fpsCounter');
 function updateFPS(){ frameCount++; const now=performance.now(); if(now-lastFPSTime>=1000){ fpsEl.textContent=frameCount+' FPS'; frameCount=0; lastFPSTime=now; } }
 
+/* ══ FADE-IN BUILD SEQUENCE ══ */
+group.position.y = -5; // Start collapsed
+group.scale.setScalar(0.01);
+
 /* ══ RENDER LOOP ══ */
 let clock=0, sigTimer=0;
+let entranceProgress = 0;
+
 function animate(){
   requestAnimationFrame(animate);
   clock += 0.012;
-  if(autoRotate) targetRotY += 0.0018;
-  rotY += (targetRotY-rotY)*0.055; rotX += (targetRotX-rotX)*0.055; zoom += (targetZoom-zoom)*0.055;
+  
+  // Sleek entrance animation
+  if (entranceProgress < 1.0) {
+    entranceProgress += 0.015;
+    const ease = 1 - Math.pow(1 - entranceProgress, 4); // Quartic ease out
+    group.scale.setScalar(ease * 1.0);
+    group.position.y = -5 + (ease * 5.55); // Rise up to 0.55
+  }
+
+  // Smooth camera sweeps and auto-rotate
+  if(autoRotate) targetRotY += 0.0015;
+  rotY += (targetRotY - rotY) * 0.04; 
+  rotX += (targetRotX - rotX) * 0.04; 
+  zoom += (targetZoom - zoom) * 0.04;
   group.rotation.y = rotY; group.rotation.x = rotX;
+  
+  // Animate Data Pulses along cables
+  signalLines.forEach((sl, i) => {
+    sl.material.dashOffset -= 0.012 + (i%3)*0.004; // Different speeds
+  });
+
+  // Handle Raycaster Tooltips
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(interactiveNodes, false);
+  if (intersects.length > 0) {
+    const hit = intersects[0].object;
+    if (hit !== hoveredNode) hoveredNode = hit;
+    tooltip.innerHTML = `<span style="color:#888;">Hardware Component</span><br><b style="font-size:12px;color:#fff;">${hit.userData.label}</b><br>${hit.userData.desc}`;
+    tooltip.style.opacity = '1';
+    
+    // Project hit point to screen
+    const hitVec = new THREE.Vector3(); hit.getWorldPosition(hitVec);
+    const scr = projectToScreen(hitVec);
+    tooltip.style.left = scr.x + 'px';
+    tooltip.style.top = (scr.y - 15) + 'px';
+  } else {
+    hoveredNode = null;
+    tooltip.style.opacity = '0';
+  }
 
   // Subtle breathing
   const breathe = Math.sin(clock*0.45)*0.0028;
-  group.scale.setScalar(1+breathe);
+  group.scale.setScalar((entranceProgress >= 1 ? 1 : group.scale.x) + breathe);
 
   // Electrode LED pulse
   electrodeObjects.forEach(({led},i) => {
