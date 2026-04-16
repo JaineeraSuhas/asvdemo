@@ -288,8 +288,8 @@ body::after {
       </div>
       <div class="sb-body">
         <div class="signal-canvas-wrap"><span class="signal-label">CH1 · MASSETER-L</span><span class="signal-value" id="sigVal1">0.00 mV</span><canvas id="sigCanvas1" height="70"></canvas></div>
-        <div class="signal-canvas-wrap"><span class="signal-label">CH2 · MASSETER-R</span><span class="signal-value" id="sigVal2">0.00 mV</span><canvas id="sigCanvas2" height="70"></canvas></div>
-        <div class="signal-canvas-wrap"><span class="signal-label">CH3 · SUPRAHYOID-L</span><span class="signal-value" id="sigVal3">0.00 mV</span><canvas id="sigCanvas3" height="70"></canvas></div>
+        <div class="signal-canvas-wrap"><span class="signal-label">CH3 · MASSETER-R</span><span class="signal-value" id="sigVal2">0.00 mV</span><canvas id="sigCanvas2" height="70"></canvas></div>
+        <div class="signal-canvas-wrap"><span class="signal-label">CH5 · SUPRAHYOID</span><span class="signal-value" id="sigVal3">0.00 mV</span><canvas id="sigCanvas3" height="70"></canvas></div>
       </div>
     </div>
 
@@ -301,18 +301,18 @@ body::after {
       </div>
       <div class="sb-body">
         <div class="dsp-card">
-          <div class="dsp-title">ASV-DSP-001</div>
-          <div class="dsp-sub">CUSTOM ESP32-S3 SIGNAL PROCESSOR</div>
-          <div class="spec-row"><span class="spec-k">Amplifier</span><span class="spec-v">INA128 × 3</span></div>
-          <div class="spec-row"><span class="spec-k">MCU</span><span class="spec-v">ESP32-S3</span></div>
-          <div class="spec-row"><span class="spec-k">ADC</span><span class="spec-v">ADS1299 · 24-bit</span></div>
-          <div class="spec-row"><span class="spec-k">Channels</span><span class="spec-v">6 CH · 1kHz</span></div>
-          <div class="spec-row"><span class="spec-k">Connectivity</span><span class="spec-v">BLE 5.0</span></div>
-          <div class="spec-row"><span class="spec-k">Battery</span><span class="spec-v">LiPo 500mAh</span></div>
-          <div class="spec-row"><span class="spec-k">Weight</span><span class="spec-v">32g (PCB)</span></div>
+          <div class="dsp-title">ASV-PCB-v1</div>
+          <div class="dsp-sub">CUSTOM ESP32-WROOM-32 SIGNAL PROCESSOR</div>
+          <div class="spec-row"><span class="spec-k">Amplifier</span><span class="spec-v">INA128 × 3 (1000× Gain)</span></div>
+          <div class="spec-row"><span class="spec-k">MCU</span><span class="spec-v">ESP32-WROOM-32</span></div>
+          <div class="spec-row"><span class="spec-k">ADC</span><span class="spec-v">ADS1115 (16-bit)</span></div>
+          <div class="spec-row"><span class="spec-k">Channels</span><span class="spec-v">5 Active + 1 REF</span></div>
+          <div class="spec-row"><span class="spec-k">Display</span><span class="spec-v">0.96" OLED Diagnostic</span></div>
+          <div class="spec-row"><span class="spec-k">Connectivity</span><span class="spec-v">BLE Transmission</span></div>
+          <div class="spec-row"><span class="spec-k">Form Factor</span><span class="spec-v">Neck-Strap Weighted</span></div>
           <div class="feature-pills">
-            <span class="fpill">INA128</span><span class="fpill">ESP32-S3</span><span class="fpill">ADS1299</span>
-            <span class="fpill">BLE 5.0</span><span class="fpill">USB-C</span><span class="fpill">LiPo</span>
+            <span class="fpill">INA128</span><span class="fpill">ESP32-WROOM</span><span class="fpill">ADS1115</span>
+            <span class="fpill">OLED</span><span class="fpill">GEL-PADS</span><span class="fpill">SILICONE</span>
           </div>
         </div>
       </div>
@@ -338,7 +338,25 @@ body::after {
       </div>
     </div>
 
-    <!-- RENDER INFO -->
+    <!-- SIGNAL FLOW PIPELINE -->
+    <div class="sb-section">
+      <div class="sb-header" onclick="toggleSection(this)">
+        <span class="sb-tag">— 10-Step Signal Pipeline</span>
+        <span class="sb-chevron">▾</span>
+      </div>
+      <div class="sb-body">
+        <div class="spec-row"><span class="spec-k">01. Input</span><span class="spec-v">μV EMG Facials</span></div>
+        <div class="spec-row"><span class="spec-k">02. Front-End</span><span class="spec-v">INA128 Pre-Amp</span></div>
+        <div class="spec-row"><span class="spec-k">03. Digitization</span><span class="spec-v">ADS1115 16-bit</span></div>
+        <div class="spec-row"><span class="spec-k">04. DC Filtering</span><span class="spec-v">50Hz Notch</span></div>
+        <div class="spec-row"><span class="spec-k">05. High-Pass</span><span class="spec-v">4th Ord Butterworth</span></div>
+        <div class="spec-row"><span class="spec-k">06. Inference</span><span class="spec-v">TensorFlow Lite</span></div>
+        <div class="spec-row"><span class="spec-k">07. Model</span><span class="spec-v">CNN-LSTM Architecture</span></div>
+        <div class="spec-row"><span class="spec-k">08. Localization</span><span class="spec-v">Local Neck-S3 Unit</span></div>
+        <div class="spec-row"><span class="spec-k">09. BLE Stream</span><span class="spec-v">&lt; 500ms Latency</span></div>
+        <div class="spec-row"><span class="spec-k">10. Dashboard</span><span class="spec-v">Classified Text</span></div>
+      </div>
+    </div>
     <div class="sb-section">
       <div class="sb-header" onclick="toggleSection(this)">
         <span class="sb-tag">— Render Info</span>
@@ -589,30 +607,30 @@ function buildHead(){
     
     // Core structure shaping via Gaussian pulls
     const bx=Math.abs(x);
-    // 1. Nose Bridge and Tip (Jutting firmly outwards and slightly down)
+    // 1. Nose Bridge and Tip
     const nK = Math.exp(-(bx*bx/0.012 + (y-0.1)**2/0.06 + (z-1.0)**2/0.08));
     if(z>0.5){ z += nK * 0.70; y -= nK * 0.20; }
-    // 2. Deep Hollow Eye Sockets (Pushed radically backward)
+    // 2. Eye Sockets (Deep)
     const esK = Math.exp(-((bx-0.35)**2/0.03 + (y-0.38)**2/0.02 + (z-0.8)**2/0.08));
     if(z>0.5){ z -= esK * 0.45; x -= Math.sign(x)*esK*0.06; }
-    // 3. Pronounced Cheekbones / Zygomatic Arches
+    // 3. Zygomatic Arches (Cheekbones)
     const ckK = Math.exp(-((bx-0.58)**2/0.02 + (y-0.05)**2/0.02 + (z-0.7)**2/0.08));
     if(z>0.2){ z += ckK * 0.25; x += Math.sign(x)*ckK*0.15; y += ckK * 0.05; }
-    // 4. Sharp Sculpted Jawline
-    const jawK = Math.exp(-((bx-0.68)**2/0.04 + (y+0.6)**2/0.04 + (z-0.4)**2/0.15));
-    x += Math.sign(x)*jawK*0.22; y -= jawK*0.05; z += jawK*0.08;
-    // 5. Stylized Ears
-    const earK = Math.exp(-((bx-1.45)**2/0.03 + (y-0.1)**2/0.06 + (z+0.1)**2/0.04));
-    x += Math.sign(x)*earK*0.38; z -= earK*0.05;
-    // 6. Brow Ridge
-    const brK = Math.exp(-(bx*bx/0.15 + (y-0.65)**2/0.01 + (z-0.8)**2/0.06));
-    if(z>0.5){ z += brK * 0.18; y -= brK * 0.05; }
-    // 7. Mental Protuberance / Chin
-    const chK = Math.exp(-(bx*bx/0.02 + (y+0.95)**2/0.04 + (z-0.85)**2/0.08));
-    if(z>0.5){ z += chK * 0.35; y -= chK * 0.12; }
-    // 8. Lips/Mouth barrel
-    const mouthK = Math.exp(-(bx*bx/0.04 + (y+0.4)**2/0.02 + (z-0.9)**2/0.05));
-    if(z>0.5){ z += mouthK * 0.15; }
+    // 4. Mandible (Jawline) - Sharper for electrode seating
+    const jawK = Math.exp(-((bx-0.65)**2/0.04 + (y+0.65)**2/0.05 + (z-0.3)**2/0.15));
+    x += Math.sign(x)*jawK*0.25; y -= jawK*0.08; z += jawK*0.12;
+    // 5. Masseter Muscle Definition (Bulge for sensors)
+    const massK = Math.exp(-((bx-0.85)**2/0.08 + (y+0.2)**2/0.15 + (z-0.2)**2/0.1));
+    x += Math.sign(x)*massK*0.12; z += massK*0.05;
+    // 6. Suprahyoid Region (Under jaw)
+    const supK = Math.exp(-(bx*bx/0.15 + (y+1.05)**2/0.04 + (z-0.4)**2/0.15));
+    y -= supK*0.12; z += supK*0.08;
+    // 7. Mental Protuberance (Chin)
+    const chK = Math.exp(-(bx*bx/0.02 + (y+0.98)**2/0.04 + (z-0.88)**2/0.08));
+    if(z>0.5){ z += chK * 0.38; y -= chK * 0.15; }
+    // 8. Brow Ridge
+    const brK = Math.exp(-(bx*bx/0.15 + (y-0.65)**2/0.01 + (z-0.85)**2/0.06));
+    if(z>0.5){ z += brK * 0.20; y -= brK * 0.05; }
 
     pos.setXYZ(i, x, y, z);
   }
@@ -643,12 +661,12 @@ shoulderMesh.castShadow = true; shoulderMesh.receiveShadow = true;
 
 /* ══ ELECTRODE DATA ══ */
 const electrodeData = [
-  { pos: new THREE.Vector3( 0.75,-0.60, 0.45), label:'MASSETER-L',   id:'ML',  muscle:'Masseter',   location:'Left cheek lateral',    impedance:'5.2 kΩ', channel:'CH1' },
-  { pos: new THREE.Vector3(-0.75,-0.60, 0.45), label:'MASSETER-R',   id:'MR',  muscle:'Masseter',   location:'Right cheek lateral',   impedance:'4.8 kΩ', channel:'CH2' },
-  { pos: new THREE.Vector3( 0.20,-1.15, 0.35), label:'SUPRAHYOID-L', id:'SHL', muscle:'Suprahyoid', location:'Sub-mandibular left',   impedance:'6.1 kΩ', channel:'CH3' },
-  { pos: new THREE.Vector3(-0.20,-1.15, 0.35), label:'SUPRAHYOID-R', id:'SHR', muscle:'Suprahyoid', location:'Sub-mandibular right',  impedance:'5.9 kΩ', channel:'CH4' },
-  { pos: new THREE.Vector3( 0.60,-0.05, 0.75), label:'BUCCINATOR-L', id:'BL',  muscle:'Buccinator', location:'Left cheek anterior',   impedance:'4.5 kΩ', channel:'CH5' },
-  { pos: new THREE.Vector3(-0.60,-0.05, 0.75), label:'BUCCINATOR-R', id:'BR',  muscle:'Buccinator', location:'Right cheek anterior',  impedance:'4.7 kΩ', channel:'CH6' },
+  { pos: new THREE.Vector3( 0.85,-0.25, 0.40), label:'MASSETER-L1',  id:'ML1', muscle:'Masseter',   location:'Jaw side (Upper L)',    impedance:'5.2 kΩ', channel:'CH1' },
+  { pos: new THREE.Vector3( 0.85,-0.55, 0.35), label:'MASSETER-L2',  id:'ML2', muscle:'Masseter',   location:'Jaw side (Lower L)',    impedance:'4.9 kΩ', channel:'CH2' },
+  { pos: new THREE.Vector3(-0.85,-0.25, 0.40), label:'MASSETER-R1',  id:'MR1', muscle:'Masseter',   location:'Jaw side (Upper R)',    impedance:'5.1 kΩ', channel:'CH3' },
+  { pos: new THREE.Vector3(-0.85,-0.55, 0.35), label:'MASSETER-R2',  id:'MR2', muscle:'Masseter',   location:'Jaw side (Lower R)',    impedance:'4.8 kΩ', channel:'CH4' },
+  { pos: new THREE.Vector3( 0.00,-1.05, 0.85), label:'SUPRAHYOID',   id:'SHP', muscle:'Suprahyoid', location:'Sub-mandibular (Center)', impedance:'6.1 kΩ', channel:'CH5' },
+  { pos: new THREE.Vector3( 0.00,-1.65, 0.65), label:'REFERENCE',    id:'REF', muscle:'Neck (GND)', location:'Thyroid Cartilage Base',  impedance:'0.2 kΩ', channel:'REF' },
 ];
 
 /* ══ RAYCAST ELECTRODES ONTO SKIN ══ */
@@ -717,18 +735,50 @@ electrodeData.forEach((d, idx) => {
 
   // 7. Status LED embedded in housing
   const ledGeo = new THREE.SphereGeometry(0.007, 8, 8);
-  const led = new THREE.Mesh(ledGeo, new THREE.MeshBasicMaterial({ color: 0x00e5aa, transparent: true, opacity: 0.9 }));
+  const ledCol = d.id === 'REF' ? 0x00ff88 : 0x00e5aa;
+  const led = new THREE.Mesh(ledGeo, new THREE.MeshBasicMaterial({ color: ledCol, transparent: true, opacity: 0.9 }));
   led.position.set(0.040, 0.040, 0.005);
   housing.add(led);
+
+  // If reference, make the disc green-ish or distinct
+  if (d.id === 'REF') {
+    disc.material.color.setHex(0x55ffaa);
+  }
 
   electrodeGroup.add(elGroup);
   electrodeObjects.push({ mesh: elGroup, data: d, disc, led });
 });
 
+/* ══ SILICONE STRAP ASSEMBLY ══ */
+const strapGroup = new THREE.Group();
+const strapMat = new THREE.MeshPhysicalMaterial({ color: 0x1a1a1a, roughness: 0.85, metalness: 0.1, clearcoat: 0.2 });
+
+// Main strap loop around neck/back of head
+const strapCurve = new THREE.EllipseCurve(0, 0, 0.75, 0.95, 0, 2 * Math.PI, false, 0);
+const strapPoints = strapCurve.getPoints(50);
+const strapGeo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(strapPoints.map(p => new THREE.Vector3(p.x, -2.1, p.y - 0.1))), 64, 0.08, 12, true);
+const strapMesh = new THREE.Mesh(strapGeo, strapMat);
+strapGroup.add(strapMesh);
+
+// Side branches to electrodes
+electrodeData.forEach((d, i) => {
+  if (d.label.includes('MASSETER')) {
+    const branchCurve = new THREE.QuadraticBezierCurve3(
+      new THREE.Vector3(d.pos.x, d.pos.y, d.pos.z),
+      new THREE.Vector3(d.pos.x * 1.1, d.pos.y, -0.4),
+      new THREE.Vector3(d.pos.x * 0.9, -2.1, -0.8)
+    );
+    const branchGeo = new THREE.TubeGeometry(branchCurve, 20, 0.04, 8, false);
+    const branchMesh = new THREE.Mesh(branchGeo, strapMat);
+    strapGroup.add(branchMesh);
+  }
+});
+scene.add(strapGroup);
+
 /* ══ CABLE HARNESS ══ */
-const dspAnchor = new THREE.Vector3(0, -2.85, 1.48); // Moved to front chest
+const dspAnchor = new THREE.Vector3(0, -2.35, -1.05); // Moved to BACK of neck
 const cableGroup = new THREE.Group();
-const signalLines = []; // To hold data pulses
+const signalLines = [];
 
 electrodeData.forEach((d, i) => {
   // Push control point outwards via normal so cable leaves mesh instead of clipping Jawline
@@ -840,28 +890,29 @@ function addIC(name, W, H, D, pinsX, pinsZ, posX, posZ, label){
   dspGroup.add(icGroup);
 }
 
-// 1. ESP32-WROOM-32 (Silver Can)
+// 1. ESP32-WROOM-32 (Centrally placed)
 const espGroup = new THREE.Group();
 const espCan = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.035, 0.35), shieldMat);
 espGroup.add(espCan);
 const antTrace = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.035, 0.35), new THREE.MeshStandardMaterial({color: 0x111612, roughness: 0.9}));
 antTrace.position.x = -0.15; espGroup.add(antTrace);
-const espLbl = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.22), new THREE.MeshBasicMaterial({color: 0x222222}));
+const espLbl = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.22), new THREE.MeshBasicMaterial({color: 0x222222, map: genICLabel('ESP32-WROOM-32')}));
 espLbl.rotation.x = -Math.PI/2; espLbl.position.set(0.03, 0.018, 0); espGroup.add(espLbl);
 espGroup.userData.baseY = PCB_H/2 + 0.0175;
-espGroup.position.set(-0.25, espGroup.userData.baseY, 0.02);
+espGroup.position.set(0.0, espGroup.userData.baseY, -0.05); // Centered
 componentsToExplode.push(espGroup);
 dspGroup.add(espGroup);
 
-// 2. ADS1115 (Center-Left)
-addIC('ADS1115', 0.08, 0.020, 0.08, 4, 4, -0.05, -0.10, 'ADS1115');
+// 2. ADS1115 (16-bit ADC)
+addIC('ADS1115', 0.08, 0.020, 0.08, 4, 4, -0.25, -0.12, 'ADS1115 ADC');
 
-// 3. INA128 (Center-Left)
-addIC('INA128', 0.07, 0.022, 0.09, 4, 0, -0.05, +0.10, 'INA128');
+// 3. INA128 (3x Amplifiers)
+addIC('INA128-1', 0.07, 0.022, 0.09, 4, 0, -0.28, +0.05, 'INA128 Amp');
+addIC('INA128-2', 0.07, 0.022, 0.09, 4, 0, -0.28, +0.15, 'INA128 Amp');
+addIC('INA128-3', 0.07, 0.022, 0.09, 4, 0, -0.28, +0.25, 'INA128 Amp');
 
-// 4. TP4056 & LM7805 (Right-Center)
-addIC('TP4056', 0.06, 0.015, 0.07, 4, 0, 0.25, 0.00, 'TP4056');
-addIC('LM7805', 0.08, 0.022, 0.08, 3, 0, 0.25, -0.10, 'LM7805');
+// 4. Power & Logic Management
+addIC('TP4056', 0.06, 0.015, 0.07, 4, 0, 0.25, -0.20, 'TP4056');
 
 // 5. LiPo Battery (Top-Right)
 const lipoGeo = new THREE.BoxGeometry(0.28, 0.055, 0.18);
@@ -949,7 +1000,7 @@ addHoverNode(oledGroup, 0.26, 0.04, 0.15, 0, 0, 0, 'OLED Display', 'Main Status 
 addHoverNode(usbMesh, 0.1, 0.06, 0.1, 0, 0, 0, 'USB Type-C', 'Power and Serial Comms');
 addHoverNode(sdMesh, 0.16, 0.04, 0.18, 0, 0, 0, 'MicroSD Slot', 'On-board logging module');
 addHoverNode(pwrLedGroup, 0.04, 0.04, 0.04, 0, 0, 0, 'PWR LED', 'System Power Indicator');
-addHoverNode(bleLedGroup, 0.04, 0.04, 0.04, 0, 0, 0, 'BLE LED', 'Blutooth Connection Indicator');
+addHoverNode(bleLedGroup, 0.04, 0.04, 0.04, 0, 0, 0, 'BLE LED', 'Bluetooth Connection Indicator');
 addHoverNode(headerBase, 0.06, 0.06, 0.38, 0, 0, 0, 'I/O Header', 'Primary Electrode Trunk');
 
 // Internal Multi-Color Micro-Wiring Routing
@@ -970,8 +1021,8 @@ dspGroup.add(jumpersGroup);
 
 // REMOVED: Enclosure walls to keep the PCB fully visible!
 
-dspGroup.position.set(0, -2.85, 1.48); // Below the neck on the chest
-dspGroup.rotation.x = -0.55; dspGroup.rotation.y = 0; // Angled heavily forward to show components perfectly from front
+dspGroup.position.set(0, -2.35, -1.05); // BACK OF NECK
+dspGroup.rotation.x = -0.55; dspGroup.rotation.y = Math.PI; // Flipped to face outward from back
 
 /* ══ GROUP EVERYTHING ══ */
 const group = new THREE.Group();
@@ -1103,16 +1154,17 @@ function drawAnnotations(){
       const ly = startY + (i * 60);
 
       const isActive = node.idx === activeElectrode;
-      const col = isActive ? 'rgba(0,229,170,0.65)' : 'rgba(255,255,255,0.12)';
+      const isRef = node.data.id === 'REF';
+      const col = isActive ? 'rgba(0,229,170,0.65)' : (isRef ? 'rgba(0,255,136,0.25)' : 'rgba(255,255,255,0.12)');
       
       emgCtx.beginPath(); emgCtx.moveTo(node.scr.x, node.scr.y); emgCtx.lineTo(node.scr.x + offsetX * 0.4, ly); emgCtx.lineTo(lx, ly);
       emgCtx.strokeStyle = col; emgCtx.lineWidth = isActive ? 1.2 : 0.7; emgCtx.stroke();
       
       emgCtx.beginPath(); emgCtx.arc(node.scr.x, node.scr.y, isActive ? 5 : 3, 0, Math.PI * 2);
-      emgCtx.fillStyle = isActive ? 'rgba(0,229,170,0.9)' : 'rgba(255,255,255,0.42)'; emgCtx.fill();
+      emgCtx.fillStyle = isActive ? 'rgba(0,229,170,0.9)' : (isRef ? 'rgba(0,255,136,0.6)' : 'rgba(255,255,255,0.42)'); emgCtx.fill();
       
       emgCtx.font = '8px "JetBrains Mono",monospace';
-      emgCtx.fillStyle = isActive ? 'rgba(0,229,170,0.85)' : 'rgba(255,255,255,0.28)';
+      emgCtx.fillStyle = isActive ? 'rgba(0,229,170,0.85)' : (isRef ? 'rgba(0,255,136,0.6)' : 'rgba(255,255,255,0.28)');
       emgCtx.textAlign = isRightSide ? 'left' : 'right';
       emgCtx.fillText(node.data.label, lx + (isRightSide ? 4 : -4), ly - 5);
       
@@ -1182,7 +1234,7 @@ window.setView=function(view,btn){
     case'front':targetRotY=0;targetRotX=0;targetZoom=5.6;targetPanY=0.35;compLabel.style.opacity=0;break;
     case'side':targetRotY=Math.PI/2;targetRotX=0;targetZoom=5.6;targetPanY=0.35;compLabel.style.opacity=0;break;
     case'top':targetRotY=0;targetRotX=-Math.PI/2.5;targetZoom=6.2;targetPanY=0.35;compLabel.style.opacity=0;break;
-    case'pcb':targetRotY=0.00;targetRotX=0.55;targetZoom=3.6;targetPanY=-2.30;compLabel.textContent='PCB VIEW — ESP32-S3 · ADS1299 · INA128 × 3 · LiPo 500mAh';compLabel.style.opacity=1;setTimeout(()=>compLabel.style.opacity=0,4000);break;
+    case'pcb':targetRotY=Math.PI;targetRotX=0.45;targetZoom=3.2;targetPanY=-2.30;compLabel.textContent='ASV-PCB-v1 — ESP32-WROOM-32 · ADS1115 · INA128 × 3';compLabel.style.opacity=1;setTimeout(()=>compLabel.style.opacity=0,4000);break;
     case'close':targetRotY=0.12;targetRotX=0.02;targetZoom=3.4;targetPanY=0.35;compLabel.style.opacity=0;break;
   }
   autoTimer=setTimeout(()=>{ autoRotate=true; },7000);
