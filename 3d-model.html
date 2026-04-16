@@ -1018,30 +1018,100 @@ const group = new THREE.Group();
 group.add(headMesh); group.add(neckMesh); group.add(shoulderMesh);
 group.add(electrodeGroup); group.add(cableGroup); group.add(dspGroup); group.add(strapGroup);
 
-/* ══ SIGNAL FLOWS & BRAIN ══ */
+/* ══ ORGANIC BRAIN & NEURAL NETWORK ══ */
 const brainGroup = new THREE.Group();
 brainGroup.position.set(0, 0.45, -0.2); // Anatomical center approx
 group.add(brainGroup);
 
+const brainMat = new THREE.MeshPhysicalMaterial({
+  color: 0x00e5aa, roughness: 0.2, metalness: 0.1,
+  transparent: true, opacity: 0.15, transmission: 0.5, thickness: 0.5,
+  emissive: 0x004433, emissiveIntensity: 0.5,
+  clearcoat: 1.0, clearcoatRoughness: 0.1
+});
+
+function buildBrainHemisphere(isLeft){
+  const geo = new THREE.IcosahedronGeometry(0.28, 5);
+  const pos = geo.attributes.position;
+  const v = new THREE.Vector3();
+  for(let i=0; i<pos.count; i++) {
+    v.fromBufferAttribute(pos, i);
+    // Organic brain texture ripples
+    const ripple = (Math.sin(v.x*15)*Math.cos(v.y*15)*Math.sin(v.z*15)) * 0.04;
+    const gyri = (Math.sin(v.x*35)*Math.sin(v.y*35)*Math.sin(v.z*35)) * 0.012;
+    v.setLength(v.length() + ripple + gyri);
+    pos.setXYZ(i, v.x, v.y, v.z);
+  }
+  geo.computeVertexNormals();
+  const mesh = new THREE.Mesh(geo, brainMat.clone());
+  mesh.position.x = isLeft ? -0.12 : 0.12;
+  mesh.scale.set(1.1, 1.25, 1.45); // Brain shape
+  return mesh;
+}
+const brainL = buildBrainHemisphere(true);
+const brainR = buildBrainHemisphere(false);
+brainGroup.add(brainL, brainR);
+
+// Detailed Neurons Layer (Point Cloud)
+const neuronCount = 400;
+const neuronGeo = new THREE.BufferGeometry();
+const neuronPos = new Float32Array(neuronCount * 3);
+const neuronAlpha = new Float32Array(neuronCount);
+for(let i=0; i<neuronCount; i++){
+  const r = 0.25 * Math.pow(Math.random(), 0.5);
+  const theta = Math.random() * Math.PI * 2, phi = Math.acos(2 * Math.random() - 1);
+  neuronPos[i*3] = r * Math.sin(phi) * Math.cos(theta);
+  neuronPos[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+  neuronPos[i*3+2] = r * Math.cos(phi) * 1.5; // Elongated
+  neuronAlpha[i] = Math.random();
+}
+neuronGeo.setAttribute('position', new THREE.BufferAttribute(neuronPos, 3));
+neuronGeo.setAttribute('alpha', new THREE.BufferAttribute(neuronAlpha, 1));
+const neuronMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.012, transparent: true, opacity: 0.6 });
+const neuronPoints = new THREE.Points(neuronGeo, neuronMat);
+brainGroup.add(neuronPoints);
+
+// Synaptic Connectors (Faint internal network)
+const axonGroup = new THREE.Group();
+for(let i=0; i<60; i++){
+  const p1 = new THREE.Vector3(neuronPos[i*3], neuronPos[i*3+1], neuronPos[i*3+2]);
+  const p2 = new THREE.Vector3(neuronPos[(i+1)*3], neuronPos[(i+1)*3+1], neuronPos[(i+1)*3+2]);
+  const lineGeo = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+  const line = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ color: 0x00e5aa, transparent: true, opacity: 0.05 }));
+  axonGroup.add(line);
+}
+brainGroup.add(axonGroup);
+
+/* ══ ORGANIC SIGNAL PIPELINES (BLOOD FLOW) ══ */
 const flowGroup = new THREE.Group();
 group.add(flowGroup);
 
 let showFlows = true;
 const flowPoints = [];
+const pipelines = [];
 
-electrodeData.forEach(d => {
-  // Path from electrode to brain inside the head
+electrodeData.forEach((d, idx) => {
   const start = d.pos.clone();
   const end = brainGroup.position.clone();
   const mid = start.clone().lerp(end, 0.45);
-  // Pull mid point slightly outwards or keep it direct internal
+  mid.x += (Math.random()-0.5)*0.4; mid.y += (Math.random()-0.5)*0.2; // Organic curvature
   
   const curve = new THREE.CatmullRomCurve3([start, mid, end]);
   
-  // Create multiple "pulses" per electrode for a "streaming" effect
-  for(let p=0; p<4; p++){
+  // 1. Organic 'Blood Flow' Pipeline (The Tube)
+  const tubeGeo = new THREE.TubeGeometry(curve, 32, 0.014, 8, false);
+  const tubeMat = new THREE.MeshPhysicalMaterial({ 
+    color: 0x001108, transparent: true, opacity: 0.1, 
+    emissive: 0x004433, emissiveIntensity: 0.2 
+  });
+  const tube = new THREE.Mesh(tubeGeo, tubeMat);
+  flowGroup.add(tube);
+  pipelines.push({ mesh: tube, originalOpacity: 0.1 });
+
+  // 2. Data/Blood Flow Pulses
+  for(let p=0; p<5; p++){
     const pulse = new THREE.Mesh(
-      new THREE.SphereGeometry(0.014, 8, 8),
+      new THREE.SphereGeometry(0.018, 12, 12),
       new THREE.MeshBasicMaterial({ color: 0x00e5aa, transparent: true, opacity: 0.8 })
     );
     flowGroup.add(pulse);
@@ -1049,8 +1119,9 @@ electrodeData.forEach(d => {
       mesh: pulse,
       curve: curve,
       progress: Math.random(),
-      speed: 0.004 + Math.random() * 0.008,
-      intensity: 0.5 + Math.random() * 0.5
+      speed: 0.003 + Math.random() * 0.006,
+      intensity: 0.5 + Math.random() * 0.5,
+      type: idx // sync with specific electrode data
     });
   }
 });
@@ -1397,23 +1468,44 @@ function animate(){
     sl.material.color.setHex(isDiagnostic ? 0x00ffaa : 0x00e5aa);
   });
 
-  // Animate Signal flows (Muscle to Brain)
+  // Animate Organic Signal flows (Muscle to Brain)
   if(showFlows){
+    // Brain breathing & pulsing
+    const brainPulse = 1.0 + Math.sin(clock * 1.8) * 0.03;
+    brainGroup.scale.set(brainPulse, brainPulse, brainPulse);
+    if(typeof brainL !== 'undefined') {
+      brainL.material.emissiveIntensity = 0.5 + Math.sin(clock * 3) * 0.3;
+      brainR.material.emissiveIntensity = 0.5 + Math.cos(clock * 3) * 0.3;
+    }
+
+    // Neuron synaptic flickering
+    if(typeof neuronPoints !== 'undefined') {
+      neuronPoints.material.opacity = 0.3 + Math.sin(clock * 10) * 0.2;
+    }
+
     flowPoints.forEach((fp, i) => {
-      fp.progress += fp.speed * (1 + 0.5 * Math.sin(clock + i));
+      // Flow speed modulated by "brain activity"
+      fp.progress += fp.speed * (1 + 0.6 * Math.sin(clock * 2.5 + i));
       if(fp.progress > 1) fp.progress = 0;
       const pos = fp.curve.getPointAt(fp.progress);
       fp.mesh.position.copy(pos);
       
-      // Cinematic scaling and fading as it reaches the "brain"
-      const s = Math.sin(fp.progress * Math.PI); // Pulse in/out
-      fp.mesh.scale.setScalar(s * 1.4 * fp.intensity);
-      fp.mesh.material.opacity = s * 0.8;
+      // Cinematic scaling: Pulse grows near electrode, stays steady, fades at brain
+      const s = Math.sin(fp.progress * Math.PI); 
+      fp.mesh.scale.setScalar(s * 1.6 * fp.intensity);
+      fp.mesh.material.opacity = s * 0.9;
       
-      // Shift color slightly for variety
-      if(isDiagnostic) fp.mesh.material.color.setHex(0x00ffaa);
-      else fp.mesh.material.color.setHex(0x00e5aa);
+      // High-intensity flash based on simulated signal peaks
+      const peak = Math.sin(clock * 5 + fp.type) > 0.85 ? 1.5 : 1.0;
+      fp.mesh.scale.multiplyScalar(peak);
     });
+
+    // Pipeline (Blood/Vein) pulsating visibility
+    if(typeof pipelines !== 'undefined') {
+      pipelines.forEach((p, i) => {
+        p.mesh.material.emissiveIntensity = 0.2 + 0.15 * Math.sin(clock * 2 + i);
+      });
+    }
   }
 
   // Handle Raycaster Tooltips
@@ -1439,9 +1531,14 @@ function animate(){
   const breathe = Math.sin(clock*0.45)*0.0028;
   group.scale.setScalar((entranceProgress >= 1 ? 1 : group.scale.x) + breathe);
 
-  // Electrode LED pulse
+  // Electrode LED pulse - synced with flows
   electrodeObjects.forEach(({led},i) => {
-    if(led){ const p=0.5+0.5*Math.abs(Math.sin(clock*2.6+i*1.1)); led.material.opacity = 0.55+0.45*p; led.parent.scale.setScalar(0.85+0.25*p); }
+    if(led){ 
+      const sigVal = Math.sin(clock * 2.6 + i * 1.1);
+      const p = 0.5 + 0.5 * Math.abs(sigVal); 
+      led.material.opacity = 0.55 + 0.45 * p; 
+      led.parent.scale.setScalar(0.85 + 0.25 * p); 
+    }
   });
 
   // DSP LED sequence
