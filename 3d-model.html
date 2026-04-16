@@ -518,9 +518,11 @@ function buildHead(){
     if(z>0.5){ const ex=Math.abs(x)-0.43,ey=y-0.40,ez=z-1.08; const ek=Math.exp(-(ex*ex/0.024+ey*ey/0.017+ez*ez/0.014)); z-=ek*0.075; }
     { const earx=Math.abs(x)-1.58,eary=y-0.04,earz=z+0.04; const eark=Math.exp(-(earx*earx/0.014+eary*eary/0.062+earz*earz/0.042)); x+=Math.sign(x)*eark*0.24; }
     if(y<-0.6&&y>-1.2){ const t=(y+0.6)/-0.6; x*=(1+t*0.05); }
-    pos.setXYZ(i,x,y,z);
   }
-  geo.computeVertexNormals(); return geo;
+  geo.computeVertexNormals();
+  geo.computeBoundingSphere();
+  geo.computeBoundingBox();
+  return geo;
 }
 
 const headGeo = buildHead();
@@ -551,6 +553,21 @@ const electrodeData = [
   { pos: new THREE.Vector3( 0.98,-0.05, 0.96), label:'BUCCINATOR-L', id:'BL',  muscle:'Buccinator', location:'Left cheek anterior',   impedance:'4.5 kΩ', channel:'CH5' },
   { pos: new THREE.Vector3(-0.98,-0.05, 0.96), label:'BUCCINATOR-R', id:'BR',  muscle:'Buccinator', location:'Right cheek anterior',  impedance:'4.7 kΩ', channel:'CH6' },
 ];
+
+/* ══ RAYCAST ELECTRODES ONTO SKIN ══ */
+headMesh.updateMatrixWorld();
+const raycaster = new THREE.Raycaster();
+
+electrodeData.forEach(d => {
+  const dir = d.pos.clone().normalize();
+  // Raycast from outside towards origin
+  raycaster.set(dir.clone().multiplyScalar(5), dir.clone().negate());
+  const intersects = raycaster.intersectObject(headMesh);
+  if(intersects.length > 0) {
+    // Rest exactly on the skin and offset outwards slightly to avoid z-fighting
+    d.pos.copy(intersects[0].point).add(intersects[0].face.normal.clone().multiplyScalar(0.012));
+  }
+});
 
 /* ══ REALISTIC Ag/AgCl SNAP ELECTRODE ══ */
 const electrodeGroup = new THREE.Group();
@@ -635,7 +652,7 @@ function makeCable(from, to, sag, biasX, biasZ){
   return new THREE.TubeGeometry(curve, 36, 0.013, 8, false);
 }
 
-const dspAnchor = new THREE.Vector3(0, -3.0, -0.62);
+const dspAnchor = new THREE.Vector3(0, -2.85, 1.48); // Moved to front chest
 const cableGroup = new THREE.Group();
 
 electrodeData.forEach((d, i) => {
@@ -955,8 +972,8 @@ ledColors.forEach((col, i) => {
   dspGroup.add(m);
 });
 
-dspGroup.position.set(0, -3.22, -0.60);
-dspGroup.rotation.x = 0.14; dspGroup.rotation.y = 0.08;
+dspGroup.position.set(0, -2.85, 1.48); // Below the neck on the chest
+dspGroup.rotation.x = -0.35; dspGroup.rotation.y = 0; // Angled slightly to rest on the chest
 
 /* ══ GROUP EVERYTHING ══ */
 const group = new THREE.Group();
