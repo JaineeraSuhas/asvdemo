@@ -612,14 +612,16 @@ scene.environment = genEnvMap(); // Apply Studio HDRI statically
 /* ══ MATERIALS ══ */
 
 // Skin
-// Skin - Dark Holographic with SSS
+// Skin - Dark Holographic (r128 compatible)
 const skinMat = new THREE.MeshPhysicalMaterial({ 
-  color: 0x07090d, roughness: 0.18, metalness: 0.05,
-  transmission: 0.25, thickness: 0.5, 
-  attenuationColor: 0x00e5aa, attenuationDistance: 0.15,
+  color: 0x07090d, roughness: 0.15, metalness: 0.05,
   transparent: true, opacity: 0.82,
-  clearcoat: 0.45, clearcoatRoughness: 0.25
+  clearcoat: 0.45, clearcoatRoughness: 0.25,
+  reflectivity: 1.0, transmission: 0.25 // transmission is supported since r121
 });
+
+const packagePinMat = new THREE.MeshStandardMaterial({ color: 0xdfb021, roughness: 0.1, metalness: 0.95 });
+const shieldMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, roughness: 0.15, metalness: 0.95 });
 
 const wireMat = new THREE.LineBasicMaterial({ color: 0x3d2214, transparent: true, opacity: 0.15, linewidth: 1 });
 
@@ -1319,7 +1321,11 @@ window.toggleCables=function(el){ el.classList.toggle('on'); cableGroup.visible=
 window.toggleDSP=function(el){ el.classList.toggle('on'); dspGroup.visible=el.classList.contains('on'); };
 window.toggleAnnotations=function(el){ el.classList.toggle('on'); showAnnotations=el.classList.contains('on'); };
 window.toggleAutoRotateUI=function(el){ el.classList.toggle('on'); autoRotate=el.classList.contains('on'); };
-window.toggleParticles=function(el){ el.classList.toggle('on'); d.bits.forEach(b => b.visible = el.classList.contains('on')); };
+window.toggleParticles=function(el){ 
+  el.classList.toggle('on'); 
+  const vis = el.classList.contains('on');
+  electrodeData.forEach(d => { if(d.bits) d.bits.forEach(b => b.visible = vis); }); 
+};
 window.toggleSection=function(header){ header.parentElement.classList.toggle('open'); };
 
 /* ══ AMBIENT NEURAL AUDIO ══ */
@@ -1456,7 +1462,6 @@ function animate(){
   });
 
   pcbLight.intensity = 0.55 + 0.28 * Math.sin(clock * 1.2);
-
   camera.position.z = zoom;
   camera.lookAt(0, panY, 0);
   composer.render();
@@ -1464,6 +1469,8 @@ function animate(){
   sigTimer++; if(sigTimer%2===0) updateSignals();
   updateFPS();
 }
+
+function animateMLBars(){ document.querySelectorAll('.ml-row-fill').forEach(bar=>{ bar.style.width=bar.dataset.w+'%'; }); }
 
 function addHudLog(txt) {
   const log = document.getElementById('hudLog');
