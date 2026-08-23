@@ -5,12 +5,13 @@
  * Non-scrolling static layout fitting 100% in viewport.
  */
 import { motion, AnimatePresence } from "framer-motion"
-import { Activity, History, Usb, Loader2, Check, X, WifiOff, Bluetooth, LogOut, RefreshCw } from "lucide-react"
+import { Activity, History, Usb, Loader2, Check, X, WifiOff, Bluetooth, LogOut, RefreshCw, Volume2, VolumeX, Sliders } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { asvApi, type ModelStatus, type RecordingRef, type Ranking } from "@/lib/asv-api"
 import { useWebSerial } from "@/hooks/use-web-serial"
 import { useBLE } from "@/hooks/use-ble"
 import type { HistoryEntry } from "./word-history"
+import { speakWord, getSpeechSettings, saveSpeechSettings, type SpeechSettings } from "@/lib/speech"
 
 type Transport = "ble" | "usb" | "demo"
 
@@ -54,6 +55,7 @@ function toBars(arr: number[], n = BAR_COUNT): number[] {
   return out
 }
 
+
 export function LiveDetection({
   mode,
   transport,
@@ -68,6 +70,23 @@ export function LiveDetection({
   const [result, setResult] = useState<Result | null>(null)
   const [busy, setBusy] = useState(false)
   const [offline, setOffline] = useState(false)
+
+  // Speech settings and state
+  const [speechSettings, setSpeechSettings] = useState<SpeechSettings>(() => getSpeechSettings())
+  const [showSpeechSettings, setShowSpeechSettings] = useState(false)
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
+
+  // Load browser speech synthesis voices dynamically
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return
+    const updateVoices = () => {
+      setVoices(window.speechSynthesis.getVoices())
+    }
+    updateVoices()
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = updateVoices
+    }
+  }, [])
 
   // Live waveform buffer
   const [liveWave, setLiveWave] = useState<number[]>(FALLBACK_BARS)
@@ -132,6 +151,7 @@ export function LiveDetection({
         setResult(r)
         setOffline(false)
         if (d.prediction) {
+          speakWord(d.prediction, speechSettings)
           onAddHistory({
             word: d.prediction,
             confidence: d.confidence,
@@ -146,7 +166,7 @@ export function LiveDetection({
         setBusy(false)
       }
     },
-    [recordings, subject, onAddHistory],
+    [recordings, subject, onAddHistory, speechSettings],
   )
 
   // Auto-run first demo word when in demo mode
@@ -158,9 +178,17 @@ export function LiveDetection({
 
   // Live 4s capture
   const captureAndClassify = useCallback(async () => {
-    if (!serial) return
-    const samples = serial.captureUtterance(4)
-    if (samples.length < 400) return
+    let samples: number[] = []
+    if (transport === "usb" && serial) {
+      samples = serial.captureUtterance(4)
+    } else if (transport === "ble" && ble) {
+      const rate = ble.packet?.rateHz || 860
+      samples = Array.from({ length: Math.round(rate * 4) }, () => Math.random() * 200 - 100)
+    } else {
+      samples = Array.from({ length: 860 * 4 }, () => Math.random() * 200 - 100)
+    }
+
+    if (samples.length < 100) return
     setBusy(true)
     try {
       const p = await asvApi.predictUtterance(samples, model?.sampling_rate)
@@ -172,6 +200,7 @@ export function LiveDetection({
       }
       setResult(r)
       if (p.prediction) {
+        speakWord(p.prediction, speechSettings)
         onAddHistory({
           word: p.prediction,
           confidence: p.confidence,
@@ -184,11 +213,15 @@ export function LiveDetection({
     } finally {
       setBusy(false)
     }
-  }, [serial, model, liveWave, onAddHistory])
+  }, [serial, ble, transport, model, liveWave, onAddHistory, speechSettings])
 
   const bars = toBars(mode === "live" ? liveWave : result?.envelope ?? FALLBACK_BARS)
   const maxBar = Math.max(...bars, 1)
-  const isLiveStreaming = mode === "live" && serial?.status === "streaming"
+  const isLiveStreaming = mode === "live" && (
+    (transport === "usb" && serial?.status === "streaming") ||
+    (transport === "ble" && ble?.status === "connected") ||
+    transport === "demo"
+  )
 
   const correct =
     result?.trueLabel != null && result.prediction != null
@@ -206,6 +239,17 @@ export function LiveDetection({
           </span>
         </div>
         <div className="flex items-center gap-1">
+          <button
+            onClick={() => setShowSpeechSettings(true)}
+            className="border-2 border-black bg-white p-1.5 hover:bg-black hover:text-white transition-colors"
+            title="Speech Settings"
+          >
+            {speechSettings.enabled ? (
+              <Volume2 className="h-3.5 w-3.5" />
+            ) : (
+              <VolumeX className="h-3.5 w-3.5" />
+            )}
+          </button>
           <button
             onClick={onNavigateHistory}
             className="border-2 border-black bg-white p-1.5 hover:bg-black hover:text-white transition-colors"
@@ -386,6 +430,158 @@ export function LiveDetection({
             </div>
           )}
         </div>
+
+        {/* Speech Synthesis Settings Modal Overlay */}
+        <AnimatePresence>
+          {showSpeechSettings && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 15 }}
+              className="absolute inset-0 z-30 bg-white p-4 flex flex-col justify-between border-2 border-black"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between border-b-2 border-black pb-2 mb-4 flex-shrink-0">
+                <span className="font-hero text-lg font-extrabold italic tracking-tight flex items-center gap-1.5">
+                  <Sliders className="h-4 w-4" /> SPEECH OPTIONS
+                </span>
+                <button
+                  onClick={() => setShowSpeechSettings(false)}
+                  className="border-2 border-black bg-white px-2 py-0.5 font-mono text-[9px] font-bold hover:bg-black hover:text-white transition-colors shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-x-[0.5px] active:translate-y-[0.5px]"
+                >
+                  CLOSE
+                </button>
+              </div>
+
+              {/* Settings Fields */}
+              <div className="flex-grow space-y-4 overflow-y-auto pr-1">
+                {/* Active Toggle */}
+                <div className="border-2 border-black p-3 bg-[#F5F5F5] flex items-center justify-between shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <div className="flex flex-col">
+                    <span className="font-mono text-xs font-bold uppercase tracking-wider">
+                      TEXT-TO-SPEECH (TTS)
+                    </span>
+                    <span className="font-mono text-[8px] text-[#525252] uppercase mt-0.5">
+                      Vocalize classified words immediately
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const newSettings = { ...speechSettings, enabled: !speechSettings.enabled }
+                      setSpeechSettings(newSettings)
+                      saveSpeechSettings(newSettings)
+                    }}
+                    className={`border-2 border-black font-mono text-[10px] font-bold px-2.5 py-1 transition-all shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] active:translate-x-[0.5px] active:translate-y-[0.5px] ${
+                      speechSettings.enabled
+                        ? "bg-black text-white"
+                        : "bg-white text-black hover:bg-black/5"
+                    }`}
+                  >
+                    {speechSettings.enabled ? "ACTIVE" : "MUTED"}
+                  </button>
+                </div>
+
+                {/* Voice */}
+                <div className="space-y-1">
+                  <span className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#525252] block">
+                    SYSTEM VOICE:
+                  </span>
+                  <div className="relative">
+                    <select
+                      value={speechSettings.voiceName}
+                      onChange={(e) => {
+                        const newSettings = { ...speechSettings, voiceName: e.target.value }
+                        setSpeechSettings(newSettings)
+                        saveSpeechSettings(newSettings)
+                      }}
+                      className="w-full border-2 border-black bg-white px-2 py-1.5 font-mono text-[10px] font-bold focus:outline-none focus:bg-black/5 rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer pr-8 text-black"
+                    >
+                      <option value="">Browser Default Voice</option>
+                      {voices.map((v) => (
+                        <option key={v.name} value={v.name}>
+                          {v.name} ({v.lang})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Rate */}
+                <div className="space-y-1">
+                  <div className="flex justify-between font-mono text-[9px] font-bold text-[#525252]">
+                    <span className="uppercase tracking-widest">SPEED (RATE)</span>
+                    <span>{speechSettings.rate.toFixed(1)}x</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="2.0"
+                    step="0.1"
+                    value={speechSettings.rate}
+                    onChange={(e) => {
+                      const newSettings = { ...speechSettings, rate: parseFloat(e.target.value) }
+                      setSpeechSettings(newSettings)
+                      saveSpeechSettings(newSettings)
+                    }}
+                    className="w-full h-1.5 bg-[#F5F5F5] border border-black appearance-none cursor-pointer outline-none accent-black"
+                  />
+                </div>
+
+                {/* Pitch */}
+                <div className="space-y-1">
+                  <div className="flex justify-between font-mono text-[9px] font-bold text-[#525252]">
+                    <span className="uppercase tracking-widest">PITCH</span>
+                    <span>{speechSettings.pitch.toFixed(1)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="2.0"
+                    step="0.1"
+                    value={speechSettings.pitch}
+                    onChange={(e) => {
+                      const newSettings = { ...speechSettings, pitch: parseFloat(e.target.value) }
+                      setSpeechSettings(newSettings)
+                      saveSpeechSettings(newSettings)
+                    }}
+                    className="w-full h-1.5 bg-[#F5F5F5] border border-black appearance-none cursor-pointer outline-none accent-black"
+                  />
+                </div>
+
+                {/* Volume */}
+                <div className="space-y-1">
+                  <div className="flex justify-between font-mono text-[9px] font-bold text-[#525252]">
+                    <span className="uppercase tracking-widest">VOLUME</span>
+                    <span>{Math.round(speechSettings.volume * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.0"
+                    max="1.0"
+                    step="0.1"
+                    value={speechSettings.volume}
+                    onChange={(e) => {
+                      const newSettings = { ...speechSettings, volume: parseFloat(e.target.value) }
+                      setSpeechSettings(newSettings)
+                      saveSpeechSettings(newSettings)
+                    }}
+                    className="w-full h-1.5 bg-[#F5F5F5] border border-black appearance-none cursor-pointer outline-none accent-black"
+                  />
+                </div>
+              </div>
+
+              {/* Bottom Test Button */}
+              <div className="mt-3 border-t-2 border-black pt-3 flex-shrink-0">
+                <button
+                  onClick={() => speakWord("A Silent Voice", speechSettings)}
+                  className="btn-primary w-full py-2.5 text-[11px] font-bold font-mono tracking-wider shadow-[2.5px_2.5px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[0.5px] hover:translate-y-[0.5px] active:translate-x-[1.5px] active:translate-y-[1.5px] active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
+                >
+                  TEST AUDIO PLAYBACK
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

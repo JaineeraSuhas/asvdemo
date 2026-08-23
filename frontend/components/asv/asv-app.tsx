@@ -70,7 +70,7 @@ export function ASVApp() {
                     setScreen("connect")
                   } else if (s === "detection") {
                     setDetectionMode(t === "usb" ? "live" : "replay")
-                    setTransport(t)
+                    setTransport(t || "demo")
                     setScreen("detection")
                   } else if (s === "history") {
                     setScreen("history")

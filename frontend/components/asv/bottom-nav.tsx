@@ -16,7 +16,7 @@ const navItems = [
 
 export function BottomNav({ currentScreen, onNavigate }: BottomNavProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-md h-[54px] bg-black border-t-2 border-black flex items-center justify-around font-mono">
+    <nav className="relative z-40 w-full h-[54px] flex-shrink-0 bg-black border-t-2 border-black flex items-center justify-around font-mono">
       {navItems.map((item) => {
         const Icon = item.icon
         const isActive = currentScreen === item.id

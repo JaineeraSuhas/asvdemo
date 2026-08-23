@@ -89,13 +89,25 @@ export function useBLE() {
     setStatus("connecting")
     try {
       const bt = (navigator as AnyBT).bluetooth
-      const device: AnyBT = await bt.requestDevice({
-        filters: [
-          { name: "ASV-Device" },
-          { services: [SERVICE_UUID] },
-        ],
-        optionalServices: [SERVICE_UUID],
-      })
+      let device: AnyBT
+      try {
+        device = await bt.requestDevice({
+          filters: [
+            { name: "ASV-Device" },
+            { namePrefix: "ASV" },
+            { services: [SERVICE_UUID] },
+          ],
+          optionalServices: [SERVICE_UUID],
+        })
+      } catch (e: unknown) {
+        if (e instanceof Error && e.name === "NotFoundError") {
+          throw e
+        }
+        device = await bt.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: [SERVICE_UUID],
+        })
+      }
       deviceRef.current = device
       setDeviceName(device.name ?? "ASV-Device")
 

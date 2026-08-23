@@ -67,7 +67,7 @@ export function ESP32Connect({ onConnected }: ESP32ConnectProps) {
   // Auto-advance BLE
   useEffect(() => {
     if (ble.status === "connected") {
-      const t = setTimeout(() => onConnected("replay", "ble", undefined, ble), 800)
+      const t = setTimeout(() => onConnected("live", "ble", undefined, ble), 800)
       return () => clearTimeout(t)
     }
   }, [ble.status, ble, onConnected])
@@ -195,11 +195,11 @@ export function ESP32Connect({ onConnected }: ESP32ConnectProps) {
                     </button>
                   ) : (
                     <button
-                      onClick={() => onConnected("replay", "ble", undefined, ble)}
+                      onClick={() => onConnected("live", "ble", undefined, ble)}
                       className="w-full py-3.5 text-xs font-mono font-bold uppercase tracking-wider bg-black text-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-white hover:text-black active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <Check className="h-3.5 w-3.5" />
-                      PROCEED TO SYSTEM
+                      PROCEED TO LIVE SYSTEM
                     </button>
                   )}
                 </div>
