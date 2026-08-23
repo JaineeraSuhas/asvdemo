@@ -179,29 +179,27 @@ export function ESP32Connect({ onConnected }: ESP32ConnectProps) {
                     <button
                       onClick={ble.connect}
                       disabled={!ble.supported || ble.status === "connecting"}
-                      className="btn-primary w-full py-2.5 text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50"
+                      className="w-full py-3.5 text-xs font-mono font-bold uppercase tracking-wider bg-black text-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-white hover:text-black active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {ble.status === "connecting" ? (
-                        <span className="flex items-center gap-1.5">
+                        <>
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           SEARCHING BLE…
-                        </span>
+                        </>
                       ) : (
-                        <span className="flex items-center gap-1.5">
+                        <>
                           <Bluetooth className="h-3.5 w-3.5" />
                           CONNECT VIA BLUETOOTH
-                        </span>
+                        </>
                       )}
                     </button>
                   ) : (
                     <button
                       onClick={() => onConnected("replay", "ble", undefined, ble)}
-                      className="btn-primary w-full py-2.5 text-xs bg-black text-white"
+                      className="w-full py-3.5 text-xs font-mono font-bold uppercase tracking-wider bg-black text-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-white hover:text-black active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      <span className="flex items-center gap-1.5">
-                        <Check className="h-3.5 w-3.5" />
-                        PROCEED TO SYSTEM
-                      </span>
+                      <Check className="h-3.5 w-3.5" />
+                      PROCEED TO SYSTEM
                     </button>
                   )}
                 </div>
@@ -240,29 +238,27 @@ export function ESP32Connect({ onConnected }: ESP32ConnectProps) {
                     <button
                       onClick={serial.connect}
                       disabled={!serial.supported || serial.status === "connecting"}
-                      className="btn-primary w-full py-2.5 text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50"
+                      className="w-full py-3.5 text-xs font-mono font-bold uppercase tracking-wider bg-black text-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-white hover:text-black active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {serial.status === "connecting" ? (
-                        <span className="flex items-center gap-1.5">
+                        <>
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           OPENING COM PORT…
-                        </span>
+                        </>
                       ) : (
-                        <span className="flex items-center gap-1.5">
+                        <>
                           <Usb className="h-3.5 w-3.5" />
                           CONNECT VIA USB SERIAL
-                        </span>
+                        </>
                       )}
                     </button>
                   ) : (
                     <button
                       onClick={() => onConnected("live", "usb", serial, undefined)}
-                      className="btn-primary w-full py-2.5 text-xs bg-black text-white"
+                      className="w-full py-3.5 text-xs font-mono font-bold uppercase tracking-wider bg-black text-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-white hover:text-black active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      <span className="flex items-center gap-1.5">
-                        <Check className="h-3.5 w-3.5" />
-                        PROCEED TO LIVE SYSTEM
-                      </span>
+                      <Check className="h-3.5 w-3.5" />
+                      PROCEED TO LIVE SYSTEM
                     </button>
                   )}
                 </div>

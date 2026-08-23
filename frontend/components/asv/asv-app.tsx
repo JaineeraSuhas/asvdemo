@@ -59,7 +59,7 @@ export function ASVApp() {
         backgroundSize: "56px 56px"
       }}
     >
-      <div className="flex-1 w-full h-full relative overflow-hidden">
+      <div className="flex-grow w-full relative overflow-hidden">
         <AnimatePresence mode="wait">
           {screen === "splash" && (
             <Slide key="splash">
@@ -125,7 +125,7 @@ export function ASVApp() {
 function Slide({ children }: { children: React.ReactNode }) {
   return (
     <motion.div
-      className="w-full h-full absolute inset-0"
+      className="w-full h-full flex flex-col"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
