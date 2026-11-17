@@ -2272,7 +2272,7 @@
                 <div class="hero-content">
                     <div class="live-badge fade-in">
                         <div class="live-dot"></div>
-                        PROJECT IN DEVELOPMENT — PHASE 1
+                        FEASIBILITY STUDY COMPLETE — PHASE 1
                     </div>
                     <div class="hero-eyebrow fade-in">EMG &nbsp;·&nbsp; Machine Learning &nbsp;·&nbsp; Assistive Tech
                     </div>
@@ -2290,17 +2290,17 @@
                         <button class="btn-ghost" onclick="window.location.href='3d-model.html'">3D Hardware Render ⤤</button>
                     </div>
                     <div class="hero-stats fade-in-3">
-                        <div class="stat-box"><span class="stat-num">95%</span>
-                            <div class="stat-label">Target Accuracy</div>
+                        <div class="stat-box"><span class="stat-num">100%</span>
+                            <div class="stat-label">Within-Donning Accuracy</div>
                         </div>
-                        <div class="stat-box"><span class="stat-num">&lt;500ms</span>
-                            <div class="stat-label">Latency Goal</div>
+                        <div class="stat-box"><span class="stat-num">67%</span>
+                            <div class="stat-label">Unseen-Donning Accuracy</div>
                         </div>
-                        <div class="stat-box"><span class="stat-num">₹8.7K</span>
-                            <div class="stat-label">Build Cost</div>
+                        <div class="stat-box"><span class="stat-num">&lt;$25</span>
+                            <div class="stat-label">Total Build Cost</div>
                         </div>
-                        <div class="stat-box"><span class="stat-num">88g</span>
-                            <div class="stat-label">Device Weight</div>
+                        <div class="stat-box"><span class="stat-num">860 Hz</span>
+                            <div class="stat-label">Sampling Rate</div>
                         </div>
                     </div>
                 </div>
@@ -2435,11 +2435,11 @@
                 <div class="footer-desc">A Silent Voice — EMG-based assistive communication device. Non-invasive.
                     Real-time. Affordable.</div>
                 <div class="footer-tags">
-                    <span class="footer-tag">PHASE 1 — IN PROGRESS</span>
+                    <span class="footer-tag">PHASE 1 — COMPLETE</span>
                     <span class="footer-tag">ESP32 + EMG + ML</span>
                     <span class="footer-tag">MADE IN INDIA</span>
                 </div>
-                <div class="footer-meta">ASV-HW-001 · PRD v1.0 · Feb 2025 · Confidential</div>
+                <div class="footer-meta">ASV-HW-001 · PRD v1.0 · 2025–2026 · Single-subject Feasibility Study</div>
             </div>
         </footer>
     </div>
@@ -2454,8 +2454,7 @@
                     <div class="tag">Signal Pipeline</div>
                     <h2 class="section-title">How ASV Works</h2>
                     <div class="divider"></div>
-                    <p class="section-sub">10-stage pipeline from raw muscle signal to spoken word — happening in under
-                        500 milliseconds.</p>
+                    <p class="section-sub">4-stage preprocessing pipeline: DC removal → 50 Hz notch (Q=30) → zero-phase 4th-order Butterworth BP (10–200 Hz) → linear envelope extraction. Each 2.0 s recording becomes a single 23-feature utterance vector.</p>
                 </div>
                 <div class="pipeline reveal">
                     <div class="pipeline-steps">
@@ -2463,33 +2462,26 @@
                             <div class="step-num">01</div>
                             <div class="step-body">
                                 <div class="step-name">EMG Signal Acquisition</div>
-                                <div class="step-desc">Ag/AgCl surface electrodes on masseter (jaw sides) and suprahyoid
-                                    (under chin) muscles detect microvolt-level electrical activity during silent
-                                    speech. 3 electrode points. Sampling rate 1000–2000 Hz.</div>
+                                <div class="step-desc">Ag/AgCl surface electrodes on right jaw/masseter region, reference near the ear. ADS1115 ALRT pin triggers a FreeRTOS interrupt on ESP32 core 1 — keeping sampling isolated from BLE, OLED and serial I/O on core 0.</div>
                                 <div class="step-tech"><span class="tech-pill">Ag/AgCl Electrodes</span><span
-                                        class="tech-pill">1000–2000 Hz sampling</span><span class="tech-pill">0.1–10 mV
-                                        range</span></div>
+                                        class="tech-pill">860.93 Hz measured</span><span class="tech-pill">2.8 µs mean jitter</span></div>
                             </div>
                         </div>
                         <div class="pipeline-step">
                             <div class="step-num">02</div>
                             <div class="step-body">
-                                <div class="step-name">Amplification</div>
-                                <div class="step-desc">INA128 instrumentation amplifier boosts the tiny signal by 1000×
-                                    while rejecting electromagnetic noise using differential electrode setup.</div>
-                                <div class="step-tech"><span class="tech-pill">INA128</span><span class="tech-pill">Gain
-                                        = 1000×</span><span class="tech-pill">CMRR &gt; 90 dB</span></div>
+                                <div class="step-name">Front-End Conditioning</div>
+                                <div class="step-desc">AD8232 ECG front-end with stock passband ≈ 0.5–40 Hz. Used off-label for sEMG — captures the low-frequency envelope of jaw-muscle activity. DC offset removal applied in software before filtering.</div>
+                                <div class="step-tech"><span class="tech-pill">AD8232</span><span class="tech-pill">0.5–40 Hz passband</span><span class="tech-pill">ADS1115 16-bit ADC</span></div>
                             </div>
                         </div>
                         <div class="pipeline-step">
                             <div class="step-num">03</div>
                             <div class="step-body">
-                                <div class="step-name">Bandpass Filtering (20–500 Hz)</div>
-                                <div class="step-desc">4th-order Butterworth filter removes movement artifacts below 20
-                                    Hz and high-frequency noise above 500 Hz. Implemented in both hardware and software.
-                                </div>
+                                <div class="step-name">Bandpass Filtering (10–200 Hz)</div>
+                                <div class="step-desc">Zero-phase 4th-order Butterworth band-pass from 10 to 200 Hz applied after the 50 Hz notch, preserving muscle envelope content while rejecting low-frequency drift and high-frequency noise.</div>
                                 <div class="step-tech"><span class="tech-pill">Butterworth 4th Order</span><span
-                                        class="tech-pill">20–500 Hz passband</span><span class="tech-pill">SciPy</span>
+                                        class="tech-pill">10–200 Hz passband</span><span class="tech-pill">Zero-phase</span>
                                 </div>
                             </div>
                         </div>
@@ -2497,9 +2489,7 @@
                             <div class="step-num">04</div>
                             <div class="step-body">
                                 <div class="step-name">Notch Filter (50 Hz)</div>
-                                <div class="step-desc">Eliminates Indian power-line interference at 50 Hz using a sharp
-                                    IIR notch filter. Q factor = 30 for precise rejection without affecting EMG signal.
-                                </div>
+                                <div class="step-desc">Eliminates power-line interference at 50 Hz using a sharp IIR notch filter. Q factor = 30 for precise rejection without distorting the low-frequency muscle envelope captured by the AD8232.</div>
                                 <div class="step-tech"><span class="tech-pill">IIR Notch Q=30</span><span
                                         class="tech-pill">50 Hz rejection</span></div>
                             </div>
@@ -2507,43 +2497,37 @@
                         <div class="pipeline-step">
                             <div class="step-num">05</div>
                             <div class="step-body">
-                                <div class="step-name">Rectification & Envelope Detection</div>
-                                <div class="step-desc">Full-wave rectification followed by 20ms moving-average envelope
-                                    creates a smooth activation profile showing when muscles are firing.</div>
+                                <div class="step-name">Linear Envelope Extraction</div>
+                                <div class="step-desc">Full-wave rectification followed by an 8 Hz 2nd-order Butterworth low-pass filter produces a smooth linear envelope. Burst detection uses a median + 3×MAD threshold; bursts separated by &lt;30 ms are merged.</div>
                                 <div class="step-tech"><span class="tech-pill">Full-wave Rectifier</span><span
-                                        class="tech-pill">20ms window</span><span class="tech-pill">NumPy</span></div>
+                                        class="tech-pill">8 Hz LP filter</span><span class="tech-pill">Median+3×MAD bursts</span></div>
                             </div>
                         </div>
                         <div class="pipeline-step">
                             <div class="step-num">06</div>
                             <div class="step-body">
-                                <div class="step-name">Windowing & Segmentation</div>
-                                <div class="step-desc">200ms sliding windows with 50ms overlap. Hanning window applied
-                                    per segment to reduce spectral leakage before frequency analysis.</div>
-                                <div class="step-tech"><span class="tech-pill">200ms window</span><span
-                                        class="tech-pill">50ms overlap</span><span class="tech-pill">Hanning
-                                        window</span></div>
+                                <div class="step-name">Utterance-Level Formulation</div>
+                                <div class="step-desc">Each 2.0 s recording is treated as a single sample — not a sliding window. This avoids mislabelled weak windows that dominated and degraded earlier sliding-window attempts (47.7% grouped-CV vs 100% utterance-level within-donning).</div>
+                                <div class="step-tech"><span class="tech-pill">2.0 s recording</span><span
+                                        class="tech-pill">1 sample per utterance</span><span class="tech-pill">1722 samples/rec</span></div>
                             </div>
                         </div>
                         <div class="pipeline-step">
                             <div class="step-num">07</div>
                             <div class="step-body">
-                                <div class="step-name">Feature Extraction (~40D vector)</div>
-                                <div class="step-desc">Time-domain: MAV, RMS, ZCR, Waveform Length. Frequency: Mean
-                                    Power, Median Frequency, STFT. Cepstral: 13 MFCCs. Combined ~40-dimensional feature
-                                    vector per window.</div>
-                                <div class="step-tech"><span class="tech-pill">MAV · RMS · ZCR · WL</span><span
-                                        class="tech-pill">13 MFCCs</span><span class="tech-pill">STFT</span></div>
+                                <div class="step-name">23-Feature Utterance Vector</div>
+                                <div class="step-desc">Four feature groups: (1) Time-domain amplitude — RMS, MAV, waveform length, ZCR, SSC. (2) Envelope amplitude — mean, max, SD, peakiness, integrated EMG. (3) Envelope dynamics — active fraction, duration, burst count, centroid, peak time, skew + 4 more. (4) Spectral — mean freq, median freq, spectral entropy.</div>
+                                <div class="step-tech"><span class="tech-pill">RMS · MAV · ZCR · SSC</span><span
+                                        class="tech-pill">23 features</span><span class="tech-pill">Burst descriptors</span></div>
                             </div>
                         </div>
                         <div class="pipeline-step">
                             <div class="step-num">08</div>
                             <div class="step-body">
-                                <div class="step-name">Normalisation & PCA</div>
-                                <div class="step-desc">Z-score normalisation across sessions. Optional PCA reduces to
-                                    top 20 components for lightweight inference on ESP32 microcontroller.</div>
-                                <div class="step-tech"><span class="tech-pill">Z-score norm</span><span
-                                        class="tech-pill">PCA → 20D</span><span class="tech-pill">Scikit-learn</span>
+                                <div class="step-name">Normalisation</div>
+                                <div class="step-desc">Feature vector normalised before classification. Grouped cross-validation protocol: within-donning LOO withholds a single recording; out-of-donning withholds an entire unseen donning and trains on the other four — the primary evaluation for deployment realism.</div>
+                                <div class="step-tech"><span class="tech-pill">Normalisation</span><span
+                                        class="tech-pill">Grouped CV</span><span class="tech-pill">Scikit-learn</span>
                                 </div>
                             </div>
                         </div>
@@ -2551,24 +2535,18 @@
                             <div class="step-num">09</div>
                             <div class="step-body">
                                 <div class="step-name">ML Classification</div>
-                                <div class="step-desc">Trained CNN-LSTM model classifies intended word from feature
-                                    vector. Confidence threshold 0.75 — below that, returns "unclear" to avoid false
-                                    positives.</div>
-                                <div class="step-tech"><span class="tech-pill">CNN-LSTM Hybrid</span><span
-                                        class="tech-pill">TensorFlow Lite</span><span class="tech-pill">Conf. threshold
-                                        0.75</span></div>
+                                <div class="step-desc">ExtraTrees is the production classifier (100% within-donning LOO, 67.0% unseen-donning). RBF-SVM baseline scores 63.5% out-of-donning. Five-class vocabulary: hello · help · water · yes · rest. Chance level = 20%.</div>
+                                <div class="step-tech"><span class="tech-pill">ExtraTrees</span><span
+                                        class="tech-pill">RBF-SVM baseline</span><span class="tech-pill">5 words · 3.35× chance</span></div>
                             </div>
                         </div>
                         <div class="pipeline-step">
                             <div class="step-num">10</div>
                             <div class="step-body">
-                                <div class="step-name">Output — Text & Speech</div>
-                                <div class="step-desc">Classified word sent via BLE to phone/PC. TTS engine speaks it
-                                    aloud. Consecutive duplicate detection (300ms hold-off) prevents stuttered output.
-                                    Sentence assembled word-by-word.</div>
-                                <div class="step-tech"><span class="tech-pill">BLE GATT</span><span
-                                        class="tech-pill">TTS Engine</span><span class="tech-pill">300ms
-                                        debounce</span><span class="tech-pill">Sentence assembly</span></div>
+                                <div class="step-name">Output — FastAPI Backend</div>
+                                <div class="step-desc">FastAPI backend runs the same feature extraction code and returns live word predictions at 73–82% confidence across all five classes. BLE carries a 20 Hz preview stream; the raw CSV stream travels over USB serial at 921600 baud.</div>
+                                <div class="step-tech"><span class="tech-pill">FastAPI</span><span
+                                        class="tech-pill">73–82% confidence</span><span class="tech-pill">BLE 20 Hz preview</span><span class="tech-pill">921600 baud serial</span></div>
                             </div>
                         </div>
                     </div>
@@ -2579,35 +2557,26 @@
                     <div class="tag">Wearable Design</div>
                     <h2 class="section-title">Electrode Placement</h2>
                     <div class="divider"></div>
-                    <p class="section-sub">No mouth insertion. No surgery. Just 3 small gel sticker pads on your skin —
-                        under the chin and on the jaw sides.</p>
+                    <p class="section-sub">Single-channel: two recording electrodes over the right jaw/masseter region, reference near the ear. Five donning sessions (A–E) with 10 reps × 5 words = 50 recordings each, 250 total.</p>
                 </div>
                 <div class="placement-grid reveal">
                     <div class="placement-card">
-                        <div class="placement-icon">[ 01 ] MASSETER</div>
-                        <div class="placement-title">Masseter (Jaw Sides)</div>
-                        <div class="placement-desc">Two electrodes placed on the sides of the jaw, just in front of the
-                            ears. Feel it flex when you clench your teeth — that's the masseter. Strongest EMG source
-                            for jaw movements.</div>
-                        <div class="placement-spec">Position: Cheek-jaw junction · Bilateral · 32mm Ag/AgCl</div>
+                        <div class="placement-icon">[ 01 ] MASSETER / JAW</div>
+                        <div class="placement-title">Right Jaw Region (Recording)</div>
+                        <div class="placement-desc">Two Ag/AgCl recording electrodes placed over the right masseter/jaw region. Single-channel differential measurement captures the low-frequency sEMG envelope during silent mouthing of words.</div>
+                        <div class="placement-spec">Position: Right jaw region · Single channel · Ag/AgCl gel electrodes</div>
                     </div>
                     <div class="placement-card">
-                        <div class="placement-icon">[ 02 ] SUPRAHYOID</div>
-                        <div class="placement-title">Suprahyoid (Under Chin)</div>
-                        <div class="placement-desc">One electrode placed directly under the chin on the soft fleshy
-                            area. Activates during tongue movement, swallowing, and vowel formation. Key for word
-                            differentiation.</div>
-                        <div class="placement-spec">Position: Submental region · Midline · Captures tongue muscle
-                            signals</div>
+                        <div class="placement-icon">[ 02 ] REFERENCE</div>
+                        <div class="placement-title">Reference Electrode (Near Ear)</div>
+                        <div class="placement-desc">One reference electrode placed near the ear to establish a stable electrical baseline. All five donning sessions (A–E) used this same 3-electrode layout — placement variability across sessions is the core challenge under study.</div>
+                        <div class="placement-spec">Position: Near ear · Reference / GND · Common-mode rejection</div>
                     </div>
                     <div class="placement-card">
-                        <div class="placement-icon">[ 03 ] REFERENCE</div>
-                        <div class="placement-title">Throat Reference (Ground)</div>
-                        <div class="placement-desc">One neutral ground electrode on the front of the throat, below the
-                            Adam's apple. Used as an electrical reference point to cancel common-mode noise from both
-                            active channels.</div>
-                        <div class="placement-spec">Position: Anterior neck · Reference/GND · Below thyroid cartilage
-                        </div>
+                        <div class="placement-icon">[ 03 ] RE-ADHESION</div>
+                        <div class="placement-title">The Re-Adhesion Problem</div>
+                        <div class="placement-desc">Within a donning, word separability is perfect (100%). Across donnings — when electrodes are removed and reapplied — accuracy drops to 67.0%. Electrode re-adhesion is the central open problem for everyday deployment.</div>
+                        <div class="placement-spec">Within-donning: 100% · Unseen-donning: 67.0% · Chance: 20%</div>
                     </div>
                     <div class="placement-card">
                         <div class="placement-icon">[ ✓ ] WEAR</div>
@@ -2629,32 +2598,27 @@
                     <div class="feature-card">
                         <div class="feature-icon">[ DET ]</div>
                         <div class="feature-title">Silent Word Detection</div>
-                        <div class="feature-desc">Detects 50+ words from jaw/throat EMG signals during silent mouthing —
-                            no sound produced by the user required.</div>
+                        <div class="feature-desc">Detects 5 words (hello, help, water, yes, rest) from jaw-muscle sEMG during silent mouthing — no sound produced by the user. 250 recordings across 5 electrode placements from subject S01.</div>
                     </div>
                     <div class="feature-card">
                         <div class="feature-icon">[ ASM ]</div>
-                        <div class="feature-title">Sentence Assembly</div>
-                        <div class="feature-desc">Words classified sequentially and assembled into full 7–8 word
-                            sentences in real time with NLP-based auto-correction.</div>
+                        <div class="feature-title">Utterance Classification</div>
+                        <div class="feature-desc">Each 2.0 s recording yields exactly one 23-feature sample classified by ExtraTrees. Utterance-level formulation avoids mislabelled sliding windows that reduced accuracy to 47.7% in earlier experiments.</div>
                     </div>
                     <div class="feature-card">
                         <div class="feature-icon">[ TTS ]</div>
-                        <div class="feature-title">Text-to-Speech</div>
-                        <div class="feature-desc">Classified words spoken aloud through phone or PC speakers using
-                            natural TTS engine within &lt;200ms of classification.</div>
+                        <div class="feature-title">Live Inference</div>
+                        <div class="feature-desc">FastAPI backend serves real-time predictions with 73–82% confidence. All five vocabulary words verified correct in live-capture tests. One live-capture truncation bug found and fixed.</div>
                     </div>
                     <div class="feature-card">
                         <div class="feature-icon">[ APP ]</div>
-                        <div class="feature-title">Phone & PC Output</div>
-                        <div class="feature-desc">Flutter Android app and Electron desktop app receive text over BLE.
-                            Real-time display on any connected device, wirelessly.</div>
+                        <div class="feature-title">Interrupt-Paced Firmware</div>
+                        <div class="feature-desc">ADS1115 ALRT strobe raises a falling-edge interrupt, waking the sampler via FreeRTOS notification. Achieved 860.93 Hz measured rate with 2.8 µs mean jitter (range 1.6–4.7 µs) across all 250 recordings.</div>
                     </div>
                     <div class="feature-card">
                         <div class="feature-icon">[ R/T ]</div>
-                        <div class="feature-title">Real-Time Processing</div>
-                        <div class="feature-desc">End-to-end latency under 500ms from muscle contraction to spoken
-                            output. ESP32 runs inference locally — no cloud needed.</div>
+                        <div class="feature-title">Dual-Core Architecture</div>
+                        <div class="feature-desc">Sampler pinned to ESP32 core 1; BLE, OLED and serial run on core 0 via a lock-free ring buffer. OLED moved to a separate I2C bus (Wire1) after display stalls were causing 25 ms ADC bus delays (~21 missed samples).</div>
                     </div>
                     <div class="feature-card">
                         <div class="feature-icon">[ PRZ ]</div>
@@ -4492,7 +4456,7 @@
                         <div class="footer-desc">A Silent Voice — EMG-based assistive communication device for
                             speech-impaired individuals. Non-invasive. Real-time. Affordable.</div>
                         <div class="footer-tags">
-                            <span class="footer-tag">PHASE 1 — IN PROGRESS</span>
+                            <span class="footer-tag">PHASE 1 — COMPLETE</span>
                             <span class="footer-tag">ESP32 + EMG + ML</span>
                             <span class="footer-tag">MADE IN INDIA</span>
                         </div>
